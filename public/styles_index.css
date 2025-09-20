@@ -1,0 +1,98 @@
+/* Estilo básico para o corpo */
+body {
+  margin: 0; /* Remove margem externa */
+  padding: 0;
+  font-family: Arial, sans-serif;
+  display: flex;  
+  justify-content: center; /* Centraliza horizontalmente */
+  align-items: center; /* Centraliza verticalmente */
+  min-height: 100vh; /* Garante altura mínima da tela */
+  background-color: #f4f4f4;
+  box-sizing: border-box; /* Garante que padding/margin sejam incluídos no cálculo total */
+  overflow-x: hidden; /* Evita rolagem horizontal */
+  font-size: 16px; /* Tamanho da fonte padrão */
+}
+
+/* Estilo para o contêiner */
+.container {
+  width: calc(100% - 30px); /* Garante que o contêiner respeite as margens do body */
+  max-width: 1000px; /* Define largura máxima */
+  height: calc(100vh - 40px); /* Considera margens no cálculo da altura */
+  margin: 0 auto; /* Centraliza o contêiner */
+  padding: 16px; /* Espaçamento interno */
+  background-color: white; /* Fundo do contêiner */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Sombra para destaque */
+  border-radius: 8px; /* Bordas arredondadas */
+  box-sizing: border-box; /* Inclui o padding na largura total */
+  overflow: auto; /* Adiciona barra de rolagem se o conteúdo for maior que o contêiner */
+}
+
+h1, h2{
+  text-align: center;
+}
+
+input, button{
+  border-radius: 8px; /* Bordas arredondadas */
+  box-sizing: border-box; /* Inclui o padding na largura total */
+}
+
+button:hover {
+  background-color: lightblue; /* Cor de fundo azul claro ao passar o mouse */
+}
+
+.box {
+  border: 2px solid black; /* Define a borda */
+  border-radius: 8px; /* Bordas arredondadas */
+  box-sizing: border-box; /* Inclui o padding e bordas na largura total */
+  margin: 15px; /* Remove margens externas */
+  padding: 5px; /* Remove espaçamento interno */
+}
+
+.box * {
+  margin: 0; /* Remove margens dos elementos filhos */
+  padding: 5px; /* Remove padding dos elementos filhos */
+}
+
+.container-box{
+  display: flex;
+  justify-content: center; /* Centraliza horizontalmente */
+}
+
+/* Para telas menores que 1200px */
+@media (max-width: 1200px) {
+  body {
+    font-size: 14px; /* Reduz o tamanho da fonte */
+  }
+}
+
+/* Para telas menores que 800px */
+@media (max-width: 800px) {
+  body, .box {
+    font-size: 12px; /* Fonte ainda menor para telas pequenas */
+  }
+  .box {
+    margin: 10px
+  }
+  .box, .box * {
+    padding: 3px;
+  }
+  .container-box {
+    flex-direction: column; /* Organiza os elementos em uma coluna */
+    align-items: center; /* Centraliza os elementos horizontalmente */
+    justify-content: center; /* Centraliza os elementos verticalmente */
+    overflow-x: auto;
+  }
+}
+
+/* Para telas menores que 500px */
+@media (max-width: 500px) {
+  body .box {
+    font-size: 10px; /* Fonte ainda menor para dispositivos muito pequenos */
+  }
+  .box {
+    margin: 5px
+  }
+  .box, .box * {
+    padding: 1px;
+  }
+}
