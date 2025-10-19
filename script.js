@@ -3591,7 +3591,7 @@ function salvarDicionario() {
 
   const a = document.createElement("a");
   a.href = url;
-  a.download = `Orçamento Pessoal - Salvo:${dia}/${mes}/${ano} ${horas}:${minutos}:${segundos}.txt`;
+  a.download = `Orçamento Pessoal - Salvo:${dia}/${mes}/${ano}.txt`;
   a.click();
 
   URL.revokeObjectURL(url);
