@@ -461,7 +461,7 @@ button {
     margin-top: 10px;
 }
 
-.tabelaBoletim, .graficosGrid {
+.tabelaBoletim, .graficosGrid, #boletimgraficoContainer {
     display: grid;
     gap: 10px; /* Espaço entre os itens */
 }
@@ -470,7 +470,7 @@ button {
     .tabelaBoletim {
         grid-template-columns: repeat(4, 1fr);
     }
-    #CheckListDiv, #CheckListDiv2, .graficosGrid {
+    #CheckListDiv, #CheckListDiv2, .graficosGrid, #boletimgraficoContainer {
         grid-template-columns: repeat(2, 1fr);
     }
 }
@@ -479,7 +479,7 @@ button {
     .tabelaBoletim {
         grid-template-columns: repeat(3, 1fr);
     }
-    #CheckListDiv, #CheckListDiv2, .graficosGrid {
+    #CheckListDiv, #CheckListDiv2, .graficosGrid, #boletimgraficoContainer {
         grid-template-columns: repeat(2, 1fr);
     }
 }
@@ -488,7 +488,7 @@ button {
     .tabelaBoletim {
         grid-template-columns: repeat(2, 1fr);
     }
-    #CheckListDiv, #CheckListDiv2, .graficosGrid {
+    #CheckListDiv, #CheckListDiv2, .graficosGrid, #boletimgraficoContainer {
         grid-template-columns: repeat(2, 1fr);
     }
 }
@@ -497,7 +497,7 @@ button {
     .tabelaBoletim {
         grid-template-columns: 1fr;
     }
-    #CheckListDiv, #CheckListDiv2, .graficosGrid {
+    #CheckListDiv, #CheckListDiv2, .graficosGrid, #boletimgraficoContainer {
         grid-template-columns: repeat(1, 1fr);
     }
 }
