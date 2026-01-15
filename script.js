@@ -1,10 +1,39 @@
-let hoje = new Date();
+function boletimGraficoBnt() {
+    graficoFuncao();
+    boletimGrafico();
+    mostrarIconer("Icone11");
+}
 
+function boletimGrafico() {
+    const container = document.getElementById('boletimgraficoContainer');
+    container.innerHTML = ''; // limpa antes de adicionar
+
+    for (let i = 1; i <= 12; i++) {
+        const boletim = document.getElementById(`boletim${i}`);
+
+        if (!boletim) {
+            console.warn(`boletim${i} não encontrado`);
+            continue;
+        }
+
+        // 1) Clona o boletim e adiciona no container
+        const boletimClone = boletim.cloneNode(true);
+        container.appendChild(boletimClone);
+
+        // 2) Cria um novo canvas para o gráfico dentro do container
+        const novoCanvas = document.createElement('canvas');
+        novoCanvas.id = `chart${i}_clone`; // evita conflito com o original
+        container.appendChild(novoCanvas);
+
+        // 3) Agora cria o gráfico nesse novo canvas
+        createChart(`chart${i}_clone`, `boletim-${i}`, `boletim${i}`);
+    }
+}
+
+let hoje = new Date();
 
 let barraFiltroBoletinsAltenativo = criarBarraDeFiltros('filtrosBoletinsAltenativo', filtrarPorDescricaoAltenativo);
 let barraFiltroBoletins = criarBarraDeFiltros('filtrosBoletins', filtrarPorDescricao);
-
-
 
 criarBarraDeFiltros('filtrosCheckList', aplicarFiltroCheckList, true);
 
@@ -456,6 +485,72 @@ function obterDomingo(data) {
     return domingo;
 }
 
+function limparDistribuicaoPonderada(){
+    const tabelaCorpo = document.getElementById(`distribuicao-ponderada-tabela-corpo`);
+    while (tabelaCorpo.firstChild) {
+        tabelaCorpo.removeChild(tabelaCorpo.firstChild);
+    }
+    calcularDistribuicaoPonderadaInvestimento();
+}
+
+function addgrupoLinhaDistribuicaoPonderada() {
+    limparDistribuicaoPonderada();
+    const selectGrupo = document.getElementById('Distribuicao-Grupos');
+    const grupoSelecionado = selectGrupo.value;
+
+    if (!grupoSelecionado) {
+        return;
+    }
+
+    let acoes = selectGrupo.options[selectGrupo.selectedIndex]
+        .getAttribute('data-acoes')
+        .split(', ');
+
+    const tabelaCorpo = document.getElementById('distribuicao-ponderada-tabela-corpo');
+
+    acoes.forEach(acao => {
+        const novaLinha = addLinhaDistribuicaoPonderada();
+        const caixaSelecao = novaLinha.querySelector('.cod-acoes-escolha');
+        caixaSelecao.value = acao;
+        caixaSelecao.dispatchEvent(new Event('change'));
+    });
+}
+
+
+function atualizarDistribuicaoPonderadaGrupos(){
+    const selectGrupos = document.getElementById('Distribuicao-Grupos');
+    selectGrupos.innerHTML = '';
+    let grupos = obterListaGruposAcoes();
+    grupos.forEach(grupo => {
+        const option = document.createElement('option');
+        option.value = grupo[0];
+        option.textContent = grupo[0];
+        selectGrupos.appendChild(option);
+        option.setAttribute('data-acoes', grupo[1].join(', '));
+    });
+}
+
+function obterListaGruposAcoes(){
+    let gruposSet = new Set();
+    let grupos = document.getElementsByClassName('grupoInvestimento');
+    for (let i = 0; i < grupos.length; i++) {
+        let acoes = []
+        let tabelaGrupo = grupos[i].getElementsByClassName('grupo-investimento-tabela-corpo')[0];
+        let linhas = tabelaGrupo.getElementsByTagName("tr");
+        for (let j = 0; j < linhas.length; j++) {
+            let acao = linhas[j].getElementsByClassName('valor-input cod-acoes-escolha')[0]?.value.trim();
+            if (acao) {
+                acoes.push(acao);
+            }
+        }
+        console.log(acoes);
+        let grupoNome = grupos[i].getElementsByClassName('descricao-input nome-grupo-investimento')[0]?.value.trim();
+        if (grupoNome) {
+            gruposSet.add([grupoNome, acoes]);
+        }
+    }
+    return Array.from(gruposSet).sort();
+}
 
 function addLinhaDistribuicaoPonderada() {
   const tabelaCorpo = document.getElementById(`distribuicao-ponderada-tabela-corpo`);
@@ -491,7 +586,10 @@ function addLinhaDistribuicaoPonderada() {
   });
 
   listaCodAcoes();
+
+  return novaLinha;
 }
+
 
 function preencherDistribuicaoPonderada(caixaSelecao, empresaInput, valorCota, proventoMedio, taxaRetorno){
   if (caixaSelecao.value === ''){
@@ -649,6 +747,7 @@ document.getElementById("div-distribuicao-ponderada-Investimento").addEventListe
     } else {
         div.style.display = "none"; // Oculta a div
     }
+    atualizarDistribuicaoPonderadaGrupos();
 });
 
 document.getElementById("div-historico-Investimento").addEventListener("click", function() {
@@ -2166,7 +2265,7 @@ function criarGraficoProventos(dicionario, dados) {
 function limparProventosPassados() {
   let validade = new Date();
 
-  validade.setMonth(validade.getMonth() - 2);
+  validade.setMonth(validade.getMonth() - 4);
   validade.setDate(1);
   
   const tabelaCorpo = document.getElementById('proventos-tabela-corpo');
