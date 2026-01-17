@@ -32,10 +32,70 @@ function boletimGrafico() {
 
 let hoje = new Date();
 
+let marcadoresCheckListOcultarOuMostrar = true;
+
+function checkListOcultarOuMostrarMacados(){
+    if (marcadoresCheckListOcultarOuMostrar){
+        checkListOcultarMacados();
+        marcadoresCheckListOcultarOuMostrar = false;
+        document.getElementById('bntOcultarOuMostrarMarcadores').innerText = "Mostrar Marcados";
+    } else {
+        checkListMostrarMacados();
+        marcadoresCheckListOcultarOuMostrar = true;
+        document.getElementById('bntOcultarOuMostrarMarcadores').innerText = "Ocultar Marcados";
+    }
+}
+
+function checkListOcultarMacados(){
+    let checkboxes = document.querySelectorAll('#tabelaCheckList input[type="checkbox"]');
+    checkboxes.forEach(checkbox => {
+        const tr = checkbox.closest('tr');
+        const statusFiltrado = tr.getAttribute('data-filtrado');
+        if (statusFiltrado === 'false'){
+            tr.style.display = 'none';
+        } else if (checkbox.checked){
+            tr.style.display = 'none';
+        }
+    });
+    checkboxes = document.querySelectorAll('#tabelaCheckList2 input[type="checkbox"]');
+    checkboxes.forEach(checkbox => {
+        const tr = checkbox.closest('tr');
+        const statusFiltrado = tr.getAttribute('data-filtrado');
+        if (statusFiltrado === 'false'){
+            tr.style.display = 'none';
+        } else if (checkbox.checked){
+            tr.style.display = 'none';
+        }
+    });
+}
+
+function checkListMostrarMacados(){
+    let checkboxes = document.querySelectorAll('#tabelaCheckList input[type="checkbox"]');
+    checkboxes.forEach(checkbox => {
+        const tr = checkbox.closest('tr');
+        const statusFiltrado = tr.getAttribute('data-filtrado');
+        if (statusFiltrado === 'false'){
+            tr.style.display = 'none';
+        } else if (checkbox.checked){
+            tr.style.display = '';
+        }
+    });
+    checkboxes = document.querySelectorAll('#tabelaCheckList2 input[type="checkbox"]');
+    checkboxes.forEach(checkbox => {
+        const tr = checkbox.closest('tr');
+        const statusFiltrado = tr.getAttribute('data-filtrado');
+        if (statusFiltrado === 'false'){
+            tr.style.display = 'none';
+        } else if (checkbox.checked){
+            tr.style.display = '';
+        }
+    });
+}
+
+
 let barraFiltroBoletinsAltenativo = criarBarraDeFiltros('filtrosBoletinsAltenativo', filtrarPorDescricaoAltenativo);
 let barraFiltroBoletins = criarBarraDeFiltros('filtrosBoletins', filtrarPorDescricao);
-
-criarBarraDeFiltros('filtrosCheckList', aplicarFiltroCheckList, true);
+let barraFiltroCheckList = criarBarraDeFiltros('filtrosCheckList', aplicarFiltroCheckList);
 
 function criarBarraDeFiltros(containerId, callbackQuandoAtualizar, tipo = false) {
   const container = document.getElementById(containerId);
@@ -59,7 +119,9 @@ function criarBarraDeFiltros(containerId, callbackQuandoAtualizar, tipo = false)
       { value: 'dividas-diversas', label: 'Dívidas Diversas' },
       { value: 'investimento', label: 'Investimento' },
       { value: 'cambio', label: 'Câmbio' },
-      { value: 'cofrinho', label: 'Cofrinho' }
+      { value: 'cofrinho', label: 'Cofrinho' },
+      { value: 'movimentacao-entrada', label: 'Movimentação de Entrada' },
+      { value: 'movimentacao-saida', label: 'Movimentação de Saída' }
     ];
 
     opcoes.forEach(opt => {
@@ -80,6 +142,18 @@ function criarBarraDeFiltros(containerId, callbackQuandoAtualizar, tipo = false)
   const modoLabel = document.createElement('label');
   modoLabel.textContent = 'Conjunto ';
   modoLabel.appendChild(modoCheckbox);
+
+  const btnLimpar = document.createElement('button');
+    btnLimpar.textContent = 'Limpar filtros';
+    btnLimpar.classList.add('btn-limpar-filtros', 'remover-linha');
+    btnLimpar.onclick = () => {
+        filtros.length = 0; // zera o array
+        const chips = container.querySelectorAll('.chip');
+        chips.forEach(chip => container.removeChild(chip));
+        notificarAtualizacao();
+    };
+
+    container.appendChild(btnLimpar);
 
   container.classList.add('filtro-container');
   container.appendChild(modoLabel);
@@ -139,7 +213,6 @@ function criarBarraDeFiltros(containerId, callbackQuandoAtualizar, tipo = false)
     });
   }
   
-
   modoCheckbox.addEventListener('change', notificarAtualizacao);
 
   return {
@@ -160,12 +233,21 @@ function criarBarraDeFiltros(containerId, callbackQuandoAtualizar, tipo = false)
 
 
 function aplicarFiltroCheckList(listaDeFiltros, conjunto) {
+  var filtros = listaDeFiltros; // Array de filtros
   function ocultarLinhas(tabelaCorpo) {
     let linhas = tabelaCorpo.getElementsByTagName("tr");
 
     for (let i = 0; i < linhas.length; i++) {
+        if (i === linhas.length - 1) {
+            // Sempre mostra a última linha
+            linhas[i].style.display = "";
+            linhas[i].setAttribute('data-filtrado', 'true');
+            continue;
+        }
       let colunaDescricao = linhas[i].getElementsByTagName("td")[0];
       let colunaDia = linhas[i].getElementsByTagName("td")[2];
+      let tipo = linhas[i].getAttribute('class').split(' ')[0];
+      let movimentacao = linhas[i].getAttribute('movimentacao');
 
       if (colunaDescricao && colunaDia) {
         let textoDescricao = colunaDescricao.getElementsByTagName('label')[0].textContent.toLowerCase();
@@ -178,18 +260,29 @@ function aplicarFiltroCheckList(listaDeFiltros, conjunto) {
         } else if (conjunto) {
           // Modo conjunto: o item deve conter todos os filtros (AND)
           mostrarLinha = listaDeFiltros.every(termo =>
-            textoDescricao.includes(termo) || textoDia === termo
+            textoDescricao.includes(termo) || textoDia === termo || tipo === `boletim-mensal-${termo.toLowerCase()}` || movimentacao === termo.toLowerCase()
           );
         } else {
           // Modo simples: o item deve conter pelo menos um (OR)
           mostrarLinha = listaDeFiltros.some(termo =>
-            textoDescricao.includes(termo) || textoDia === termo
+            textoDescricao.includes(termo) || textoDia === termo || tipo === `boletim-mensal-${termo.toLowerCase()}` || movimentacao === termo.toLowerCase()
           );
+
         }
 
-        linhas[i].style.display = mostrarLinha ? "" : "none";
+        if (mostrarLinha){
+            linhas[i].style.display = "";
+            linhas[i].setAttribute('data-filtrado', 'true');
+        } else {
+            linhas[i].style.display = "none";
+            linhas[i].setAttribute('data-filtrado', 'false');
+        }
+        
+
       }
     }
+    atualizarMarcacoesCheckList();
+    atualizarSaldoCheckGeral();
   }
 
   let tabela1 = document.getElementById("tabelaCheckList");
@@ -197,6 +290,10 @@ function aplicarFiltroCheckList(listaDeFiltros, conjunto) {
 
   ocultarLinhas(tabela1);
   ocultarLinhas(tabela2);
+  atualizarMarcacoesCheckList();
+  document.getElementById('bntOcultarOuMostrarMarcadores').innerText = "Ocultar Marcados";
+  marcadoresCheckListOcultarOuMostrar = true;
+  cronogramaCheckListFuncao(filtros, conjunto);
 }
 
 
@@ -213,6 +310,7 @@ function filtrarPorDescricaoAltenativo(filtros, conjunto) {
     const primeiroTd = tr.querySelectorAll('td');
     const label = primeiroTd[0].querySelector('label');
     const labelTexto = label?.textContent.toLowerCase() || '';
+    const movimentacao = tr.getAttribute('movimentacao')?.toLowerCase() || '';
     const classList = tr.classList;
     let mostrar;
 
@@ -221,6 +319,7 @@ function filtrarPorDescricaoAltenativo(filtros, conjunto) {
       return (
         labelTexto.includes(textoFiltro) ||
         explicacao.includes(textoFiltro) ||
+        movimentacao.includes(textoFiltro) ||
         Array.from(classList).some(classe => classe.includes(textoFiltro))
       );
     };
@@ -291,6 +390,7 @@ function filtrarPorDescricao(filtros, conjunto) {
       const numero     = tr.getAttribute('numeroboletim');
       const labelElem  = tr.querySelector('td:first-child label');
       const labelTexto = (labelElem?.textContent || '').toLowerCase();
+      const movimentacao = tr.getAttribute('movimentacao')?.toLowerCase() || '';
       const classes    = Array.from(tr.classList);
       let   mostrar;
 
@@ -299,6 +399,7 @@ function filtrarPorDescricao(filtros, conjunto) {
         return (
           labelTexto.includes(txt) ||
           explicacao.includes(txt) ||
+          movimentacao.includes(txt) ||
           classes.some(c => c.includes(txt))
         );
       };
@@ -360,16 +461,15 @@ function removerLinhaTotalBoletimFiltro() {
 }
 
 
-
-function cronogramaCheckListFuncao(){
+function cronogramaCheckListFuncao(filtro=[], conjunto=false){
   let _ = new Date();
   let data = new Date(_.getFullYear(), _.getMonth() - 1, 1);
   let dataAtual = new Date(_.getFullYear(), _.getMonth(), 1);
   dicionarios = calcularValoresMensais(atualizarDadosReceitas(), atualizarDadosCartoes(), atualizarDadosDiversos(), criarDicionarioCofrinho(), criarDicionarioAcao(), criarDicionarioProventosAcoes(), criarDicionarioMoedas(), data);
-  calcularSemanasCronograma(dicionarios, dataAtual);
+  calcularSemanasCronograma(dicionarios, dataAtual, filtro, conjunto);
 }
 
-function calcularSemanasCronograma(dadosCompostos, data) {
+function calcularSemanasCronograma(dadosCompostos, data, filtro, conjunto) {
     let domingo = obterDomingo(data);
     let dicionario = {};
 
@@ -393,7 +493,7 @@ function calcularSemanasCronograma(dadosCompostos, data) {
                     break;
                 }
             }
-            semanaDicionario[d] = calcularDiaCronograma(dados, dia.getDate()) || { total: 0 };
+            semanaDicionario[d] = calcularDiaCronograma(dados, dia.getDate(), filtro, conjunto) || { total: 0 };
             semanaDicionario[d].data = dia;
         }
 
@@ -448,6 +548,12 @@ function calcularSemanasCronograma(dadosCompostos, data) {
                     if (itens[i]) {
                         const item = semanaDicionario[dia][itens[i]];
                         cell.innerHTML = `${item.descricao}<br><strong>${formatarMoeda_resultado(item.valor)}</strong>`;
+                        cell.classList.add('cronograma-item');
+                        cell.setAttribute('descricao', item.descricao);
+                        cell.setAttribute('tipo', item.tipo);
+                        cell.setAttribute('movimentacao', `movimentacao-${item.movimentacao}`);
+                        cell.style.backgroundColor = item.movimentacao === 'entrada' ? 'rgba(211, 249, 216, 0.5)' : 'rgba(249, 211, 211, 0.5)';
+                        cell.style.color = 'black';
                     }
                 }
                 row.appendChild(cell);
@@ -460,19 +566,54 @@ function calcularSemanasCronograma(dadosCompostos, data) {
     }
 }
 
-function calcularDiaCronograma(dados, dia){
+function calcularDiaCronograma(dados, dia, filtros, conjunto){
   let dicionario = {}
   
   let contador = 1; let total = 0;
   for (const [rendKey, dado] of Object.entries(dados)) {
     if (dia === dado.dia){
-      dicionario[contador] = {
+      let mostrarItem = true;
+      if (filtros.length > 0){
+        mostrarItem = false;
+        let contador = 0;
+        for (let i = 0; i < filtros.length; i++){
+          let filtro = filtros[i];
+
+          if (conjunto){
+            if (dado.descricao.toLowerCase().includes(filtro.toLowerCase())) {
+              contador++;
+            }
+
+            if (dado.tipo.toLowerCase() === `boletim-mensal-${filtro.toLowerCase()}`) {
+              contador++;
+            }
+
+            if (`movimentacao-${dado.movimentacao.toLowerCase()}` === filtro.toLowerCase()) {
+              contador++;
+            }
+
+            if (contador >= filtros.length) {
+              mostrarItem = true;
+            }
+
+          } else {
+            if (dado.descricao.toLowerCase().includes(filtro.toLowerCase()) || dado.tipo.toLowerCase().includes(filtro.toLowerCase()) || `movimentacao-${dado.movimentacao.toLowerCase()}` === filtro.toLowerCase()) {
+            mostrarItem = true;
+            }
+          }
+        }
+        contador = 0;
+      }
+      if (mostrarItem) {
+        dicionario[contador] = {
         descricao: dado.descricao,
         valor: dado.valor,
-        movimentacao: dado.movimentacao,        
+        movimentacao: dado.movimentacao,
+        tipo: dado.tipo,
       }
       contador ++;
       total += dado.valor;
+      }
     }
   }
   dicionario['total'] = total;
@@ -543,7 +684,6 @@ function obterListaGruposAcoes(){
                 acoes.push(acao);
             }
         }
-        console.log(acoes);
         let grupoNome = grupos[i].getElementsByClassName('descricao-input nome-grupo-investimento')[0]?.value.trim();
         if (grupoNome) {
             gruposSet.add([grupoNome, acoes]);
@@ -2426,6 +2566,7 @@ function atualizaTotaisGrupo(id){
   valorizacaoLabel.textContent = texto.replace('NaN', '0,000');
   valorizacaoLabel.setAttribute('data-valor', parseFloat(valorizacaoTotal.toFixed(2)));
   gruposInvestimentosDados();
+  atualizarDistribuicaoPonderadaGrupos();
 }
 
 function atualizaTotaisGrupoGeral() {
@@ -3882,7 +4023,6 @@ function salvarProgresso(dadosObjeto) {
   try {
     const dadosSalvos = JSON.stringify(dadosObjeto);
     localStorage.setItem('progressoSalvo', dadosSalvos);
-    console.log("Progresso salvo com sucesso.");
   } catch (erro) {
     console.error("Erro ao salvar progresso no localStorage:", erro);
   }
@@ -3892,7 +4032,6 @@ function carregarProgressoSalvo() {
   carregou = false; // Reseta a variável carregou
   const dadosJSON = localStorage.getItem('progressoSalvo');
   if (!dadosJSON) {
-    console.log("Nenhum progresso salvo encontrado.");
     return;
   }
 
@@ -4309,6 +4448,8 @@ function ChecklistFuncao() {
     }
     carregarCheckListMarcadas();
   cronogramaCheckListFuncao();
+  barraFiltroCheckList.forcarAtualizacao();
+  atualizarSaldoCheckGeral();
 }
 
 function clonarEBaixarTabelaCheckList(idDiv, data, idCheckList, idDias, idCalendario) {
@@ -4359,6 +4500,14 @@ function clonarEBaixarTabelaCheckList(idDiv, data, idCheckList, idDias, idCalend
             });     
         }
     });
+    // adicionar linha saldo restante:
+    var linhaSaldo = document.createElement('tr');
+    linhaSaldo.id = 'linhaSaldoCheckList';
+    linhaSaldo.innerHTML = `
+        <td colspan="2"><strong>Saldo Restante:</strong></td>
+        <td colspan="2"><label id="${idDiv}-saldoCheckList" data-valor="0.00">R$ 0,00</label></td>
+    `;
+    tabela.appendChild(linhaSaldo);
 
     // Adiciona a div copiada à div CheckListDiv
     var divCheckList = document.getElementById(idCheckList);  // Seleciona a div de destino
@@ -4384,6 +4533,48 @@ function clonarEBaixarTabelaCheckList(idDiv, data, idCheckList, idDias, idCalend
 
     // Altera o texto da quarta coluna para "Status"
     quartaColuna.textContent = "Status";
+}
+
+function atualizarSaldoCheckListFinal(idSaldo, idBoletim) {
+    var saldoLabel = document.getElementById(idSaldo);
+    var valorAtual_ = 0;
+    var linhas = document.querySelectorAll(`#${idBoletim} tr`);
+    linhas.forEach(linha => {
+        var celulas = linha.getElementsByTagName('td');
+        if (celulas.length > 3) {
+            var checkbox = celulas[3].querySelector('input[type="checkbox"]');
+            var statusFiltradosaldo = '';
+            try {
+                var statusFiltradosaldo = linha.getAttribute('data-filtrado');
+            } catch {
+                var statusFiltradosaldo = 'true';
+            }
+            if (checkbox) {
+                if (checkbox.checked) {
+                    return; // Pula para a próxima iteração se estiver marcado
+                } else if (statusFiltradosaldo === 'false') {
+                    return; // Pula para a próxima iteração se estiver marcado via data-marcado
+                }
+                var valor = parseFloat(celulas[1].querySelector('label').getAttribute('data-valor'));
+
+                valorAtual_ += valor;
+            }
+        }
+    });
+    saldoLabel.innerText = `R$ ${formatarResultado(valorAtual_.toFixed(2), 2)}`;
+}
+
+function atualizarSaldoCheckGeral(){
+    atualizarSaldoCheckListFinal('boletim1-saldoCheckList', 'tabelaCheckList');
+    atualizarSaldoCheckListFinal('boletim2-saldoCheckList', 'tabelaCheckList2');
+}
+
+function atualizarMarcacoesCheckList(){
+    criarDicionarioDias('tabelaCheckList', 'divCalendarioCheckList');
+    criarDicionarioDias('tabelaCheckList2', 'divCalendarioCheckList2');
+    carregarCheckListMarcadas();
+    atualizarCalendario('divCalendarioCheckList');
+    atualizarCalendario('divCalendarioCheckList2');
 }
 
 function carregarCheckListMarcadas(){
@@ -4422,6 +4613,8 @@ function criarDicionarioDias(id, calendario) {
 
     checkboxes.forEach(checkbox => {
         const tr = checkbox.closest('tr');
+        const display = window.getComputedStyle(tr).display;
+
         const dia = parseInt(tr.querySelectorAll('td')[2].querySelector('label').textContent);
         
         if (calendario === 'divCalendarioCheckList'){
@@ -4429,11 +4622,19 @@ function criarDicionarioDias(id, calendario) {
             dicionarioDias1[dia] = 0;
           }
 
+          if (display === 'none') {
+            return;
+          }
+
           dicionarioDias1[dia]++;
           
         } else {
           if (!dicionarioDias2[dia]) {
             dicionarioDias2[dia] = 0;
+          }
+
+            if (display === 'none') {
+              return;
           }
 
           dicionarioDias2[dia]++;
@@ -4448,7 +4649,9 @@ function atualizarDicionarioDia(dia, isChecked, calendario) {
         }
 
         if (isChecked) {
-            dicionarioDias1[dia]--;
+            if (dicionarioDias1[dia] > 0){
+                dicionarioDias1[dia]--;
+            }
         } else {
             dicionarioDias1[dia]++;
         }
@@ -4458,7 +4661,9 @@ function atualizarDicionarioDia(dia, isChecked, calendario) {
       }
 
       if (isChecked) {
-          dicionarioDias2[dia]--;
+        if (dicionarioDias2[dia] > 0) {
+            dicionarioDias2[dia]--;
+        }
       } else {
           dicionarioDias2[dia]++;
       }
@@ -4593,6 +4798,7 @@ function atualizarSaldoCheckList(valor, isChecked) {
 
     // Atualiza o valor do saldo no formato brasileiro
     saldoLabel.innerText = formatarResultado(saldoAtual.toFixed(2), 2);
+    atualizarSaldoCheckGeral();
 }
 
 let meses = ["Janeiro 01", "Fevereiro 02", "Março 03", "Abril 04", "Maio 05", "Junho 06", "Julho 07", "Agosto 08", "Setembro 09", "Outubro 10", "Novembro 11", "Dezembro 12"];
@@ -4608,6 +4814,7 @@ let dicionarioMoedas = {};
 
 function boletimFuncaoBtn() {
   boletimFuncao();
+  barraFiltroBoletins.forcarAtualizacao();
 }
 
 function boletimFuncao() {
@@ -5147,9 +5354,11 @@ function adicionarLinhasTabelaBoletim(dados, idTbody, id, saldoStatus=true) {
               if (saldoStatus){
                 novaLinha.setAttribute('numeroBoletim', id);
                 novaLinha.className = `${dados[chave].tipo} boletim-mensal-Descricao-Item  linha-${dados[chave].movimentacao}`;
+                novaLinha.setAttribute('movimentacao', `movimentacao-${dados[chave].movimentacao}`);
               } else {
                 novaLinha.setAttribute('numeroBoletim', id + 12);
                 novaLinha.className = `${dados[chave].tipo}-altenativo boletim-mensal-Descricao-Item-altenativo`;
+                novaLinha.setAttribute('movimentacao', `movimentacao-${dados[chave].movimentacao}-altenativo`);
               }
 
               novaLinha.setAttribute('valorLinha', valor);
@@ -6330,6 +6539,7 @@ function funcaoBoletimAltenativo(){
   boletimFuncaoAltenativoSelecao('Altenativo1', '#boletim1-altenativo', 1);
   boletimFuncaoAltenativoSelecao('Altenativo2', '#boletim2-altenativo', 2);
   boletimFuncaoAltenativoSelecaoGeral();
+  barraFiltroBoletinsAltenativo.forcarAtualizacao();
   mostrarIconer('Icone10');
 }
 
@@ -6521,6 +6731,7 @@ function adicionarLinhasTabelaBoletimAlternativo(dadosMeses, idTbody, id, saldoS
             } else {
               novaLinha.setAttribute('numeroBoletim', id + 12);
               novaLinha.className = `${dados[chave].tipo}-altenativo boletim-mensal-Descricao-Item-altenativo`;
+              novaLinha.setAttribute('movimentacao', `movimentacao-${dados[chave].movimentacao}-altenativo`);
             }
 
             novaLinha.setAttribute('valorLinha', valor);
