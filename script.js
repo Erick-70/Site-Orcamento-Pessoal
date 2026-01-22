@@ -2140,6 +2140,7 @@ function preencherProventosAcoes(selectInput, empresaInput, dataCorteInput, qtde
   if (dadosProcessados[codigoAcao]){
     empresaInput.value = dadosProcessados[codigoAcao].nomeEmpresa;
     if (dataCorteInput.value){
+        console.log(dadosProcessados[codigoAcao].movimentacoes);
       let qtd = calcularQtdeAcoesData(new Date(dataCorteInput.value), dadosProcessados[codigoAcao].movimentacoes);
       qtdeInput.value = qtd;
       let valorTotal = parseFloat(valorInput.getAttribute('data-valor')) * qtd;
@@ -2163,21 +2164,73 @@ function dicionarioAcoesModificado (){
   var dicionarioBase = criarDicionarioAcao();
   var dicionario = {};
   
+  let contador = 1;
   for (var [_, dados] of Object.entries(dicionarioBase)) {
     _ = {
       nomeEmpresa: dados.nomeEmpresa,
-      movimentacoes: processarComprVenda(dados.movimentacoes),
+      movimentacoes: organizarMovimentacoesAcoes(dados.movimentacoes),
     }
     dicionario[dados.codigo] = _
+    contador++;
   }
   return dicionario;
 }
 
+function organizarMovimentacoesAcoes(movimentacoes){
+  let resultado = [];
+  let listaMovimentacaoCompra = [];
+  let listaMovimentacaoVenda = [];
+
+    for (var [_, dados] of Object.entries(movimentacoes)){
+        if (dados.movimentacao === 'compra'){
+            listaMovimentacaoCompra.push(dados);
+        } else if (dados.movimentacao === 'venda'){
+            listaMovimentacaoVenda.push(dados);
+        }
+    }
+
+    let data = new Date();
+    listaMovimentacaoCompra.push({data: data.toISOString().split("T")[0], Qtde: 0, valor: 0, valorTotal: 0}); // Sentinela para facilitar o loop
+
+    // Ordenar as listas por data
+    listaMovimentacaoCompra.sort((a, b) => new Date(a.data) - new Date(b.data));
+    listaMovimentacaoVenda.sort((a, b) => new Date(a.data) - new Date(b.data));
+
+    let dataAntiga = new Date('1900-01-01');
+    let qtdeAtual = 0;
+    for (c = 0; c < listaMovimentacaoCompra.length; c++){
+        let dataAtual = new Date(listaMovimentacaoCompra[c].data);
+        qtdeAtual += listaMovimentacaoCompra[c].Qtde;
+
+        for (d = 0; d < listaMovimentacaoVenda.length; d++){
+            let dataVenda = new Date(listaMovimentacaoVenda[d].data);
+            let qtdeVenda = listaMovimentacaoVenda[d].Qtde;
+
+            if (dataVenda > dataAntiga && dataVenda <= dataAtual && qtdeVenda > 0){
+                qtdeAtual -= qtdeVenda;
+                listaMovimentacaoVenda[d].Qtde = 0; // Marca como processado
+            }
+        }
+        dataAntiga = dataAtual;
+        resultado.push({
+            movimentacao: 'compra',
+            data: listaMovimentacaoCompra[c].data,
+            Qtde: qtdeAtual,
+        });
+    }
+
+return resultado
+}
+
 function calcularQtdeAcoesData(data, movimentadoes){
   let qtdeTotal = 0;
+  let ultimaData = new Date('1900-01-01');
   for (var [_, dados] of Object.entries(movimentadoes)){
     let dataMovimentacao = new Date(dados.data);
-    if (data >= dataMovimentacao){qtdeTotal += dados.Qtde}
+    if (dataMovimentacao <= data && dataMovimentacao >= ultimaData){
+      qtdeTotal = dados.Qtde;
+    }
+    ultimaData = dataMovimentacao;
   }
   return qtdeTotal;
 }
@@ -2222,7 +2275,7 @@ function criarDicionarioProventosAcoes(){
    for (let i = 0; i < linhas.length; i++) {
      const linha = linhas[i];
      var data = new Date (linha.querySelector('.data-pagamento-acao').value);
-     if (linha.querySelector('.valor-total-acao').getAttribute('data-valor') != 0){
+     if (linha.querySelector('.nome-empresa').value !== '') {
        dicionario[i] = {
          codigo: linha.querySelector('.cod-acoes-escolha').value,
          empresa: linha.querySelector('.nome-empresa').value,
@@ -2815,6 +2868,7 @@ function atualizarTotalAplicadoAcoes(){
 }
 
 function processarComprVenda(dicionarioDados){
+    //console.log(dicionarioDados);
   for (var [chave, dados] of Object.entries(dicionarioDados)) {
     if (dados.movimentacao === "venda") {
       for (var [chave_, dado] of Object.entries(dicionarioDados)) {
@@ -2834,6 +2888,12 @@ function processarComprVenda(dicionarioDados){
     }
   }
   return dicionarioDados
+}
+
+function processarCompraVendaComposta (dicionarioDados){
+    for (var [chave, dados] of Object.entries(dicionarioDados)) {
+
+    }
 }
 
 function gruposInvestimentosDados(){
