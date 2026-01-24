@@ -1,14 +1,17 @@
 function boletimGraficoBnt() {
     graficoFuncao();
-    boletimGrafico();
+    boletimGraficoCronograma();
     mostrarIconer("Icone11");
 }
 
-function boletimGrafico() {
+function boletimGraficoCronograma() {
     const container = document.getElementById('boletimgraficoContainer');
     container.innerHTML = ''; // limpa antes de adicionar
+    var dataAtual = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
 
     for (let i = 1; i <= 12; i++) {
+        let div = document.createElement('div');
+        div.className = 'boletimgraficoContainer';
         const boletim = document.getElementById(`boletim${i}`);
 
         if (!boletim) {
@@ -27,8 +30,62 @@ function boletimGrafico() {
 
         // 3) Agora cria o gráfico nesse novo canvas
         createChart(`chart${i}_clone`, `boletim-${i}`, `boletim${i}`);
+
+        // 4) adiciona boletim e grafino no div
+        div.appendChild(boletimClone);
+        div.appendChild(novoCanvas);
+        container.appendChild(div);
+
+        // 4) adciona o cronograma
+        const cronogramaContainer = document.createElement('div');
+        cronogramaContainer.id = `cronograma-boletim-${i}`;
+        container.appendChild(cronogramaContainer);
+        criarCronogramaBoletimMensal(i, cronogramaContainer, dataAtual);
+        dataAtual.setMonth(dataAtual.getMonth() + 1);
     }
 }
+
+function criarCronogramaBoletimMensal(numeroBoletim, container, data) {
+    // total de dias do mês
+    const diasNoMes = new Date(
+        data.getFullYear(),
+        data.getMonth() + 1,
+        0
+    ).getDate();
+
+    // dia da semana do primeiro dia do mês
+    // 0 = domingo, 6 = sábado
+    const primeiroDiaSemana = new Date(
+        data.getFullYear(),
+        data.getMonth(),
+        1
+    ).getDay();
+
+    // número real de semanas de calendário
+    const semanas = Math.ceil((diasNoMes + primeiroDiaSemana) / 7);
+
+    dicionarios = calcularValoresMensais( 
+        atualizarDadosReceitas(),
+        atualizarDadosCartoes(),
+        atualizarDadosDiversos(),
+        criarDicionarioCofrinho(),
+        criarDicionarioAcao(),
+        criarDicionarioProventosAcoes(),
+        criarDicionarioMoedas(),
+        data
+    );
+
+    calcularSemanasCronograma(
+        dicionarios,
+        data,
+        [],
+        false,
+        `cronograma-boletim-${numeroBoletim}`,
+        semanas
+    );
+}
+
+
 
 let hoje = new Date();
 
@@ -466,20 +523,20 @@ function cronogramaCheckListFuncao(filtro=[], conjunto=false){
   let data = new Date(_.getFullYear(), _.getMonth() - 1, 1);
   let dataAtual = new Date(_.getFullYear(), _.getMonth(), 1);
   dicionarios = calcularValoresMensais(atualizarDadosReceitas(), atualizarDadosCartoes(), atualizarDadosDiversos(), criarDicionarioCofrinho(), criarDicionarioAcao(), criarDicionarioProventosAcoes(), criarDicionarioMoedas(), data);
-  calcularSemanasCronograma(dicionarios, dataAtual, filtro, conjunto);
+  calcularSemanasCronograma(dicionarios, dataAtual, filtro, conjunto, identificador = 'Cronograma-tabela-corpo-1');
 }
 
-function calcularSemanasCronograma(dadosCompostos, data, filtro, conjunto) {
+function calcularSemanasCronograma(dadosCompostos, data, filtro, conjunto, identificador, semanas = 6) {
     let domingo = obterDomingo(data);
     let dicionario = {};
 
-    const tbody = document.getElementById('Cronograma-tabela-corpo-1');
+    const tbody = document.getElementById(identificador);
     tbody.innerHTML = ""; 
 
     const diasSemana = ["1", "2", "3", "4", "5", "6", "7"];
     let saldo = 0;
 
-    for (let semana = 0; semana < 6; semana++) { // Loop para 3 semanas
+    for (let semana = 0; semana < semanas; semana++) { // Loop para 3 semanas
         let semanaDicionario = {};
 
         for (let d = 1; d < 8; d++) {
@@ -566,7 +623,7 @@ function calcularSemanasCronograma(dadosCompostos, data, filtro, conjunto) {
     }
 }
 
-function calcularDiaCronograma(dados, dia, filtros, conjunto){
+function calcularDiaCronograma(dados, dia, filtros, conjunto) {
   let dicionario = {}
   
   let contador = 1; let total = 0;
@@ -2140,7 +2197,6 @@ function preencherProventosAcoes(selectInput, empresaInput, dataCorteInput, qtde
   if (dadosProcessados[codigoAcao]){
     empresaInput.value = dadosProcessados[codigoAcao].nomeEmpresa;
     if (dataCorteInput.value){
-        console.log(dadosProcessados[codigoAcao].movimentacoes);
       let qtd = calcularQtdeAcoesData(new Date(dataCorteInput.value), dadosProcessados[codigoAcao].movimentacoes);
       qtdeInput.value = qtd;
       let valorTotal = parseFloat(valorInput.getAttribute('data-valor')) * qtd;
@@ -2664,6 +2720,7 @@ function criarDicionarioGruposInvestimentos(){
 }
 
 let acaoIdCounter = 0;
+let listaTabelasAcoes = [];
 function addAcao(){
     acaoIdCounter ++;
     var containerAcao = document.getElementById('acao-container');
@@ -2700,6 +2757,7 @@ function addAcao(){
 
             <div class="table-container">
               <button onclick="adicionarLinhaAcao(${acaoIdCounter})" class="remover-linha">Adicionar Linha</button>
+              <button onclick="ocutarOuMostrarTabelaAcao('${acaoIdCounter}')" class="remover-linha" id="${acaoIdCounter}-botao-ocultar">Ocultar linhas</button>
                 <table>
                     <thead>
                         <tr>
@@ -2711,13 +2769,53 @@ function addAcao(){
                             <th>Ações</th>
                         </tr>
                     </thead>
-                    <tbody id="${acaoIdCounter}-tabela-corpo-acao">
+                    <tbody class="tabela-corpo-acao" id="${acaoIdCounter}-tabela-corpo-acao">
                         <!-- Linhas da tabela serão adicionadas aqui -->
                     </tbody>
                 </table>
             </div>
         </div>`
+
     containerAcao.appendChild(novaAcao);
+}
+
+function ocutarOuMostrarTabelaAcao(id){
+    var tabelaContainer = document.getElementById(`${id}-tabela-corpo-acao`);
+    let linhas = tabelaContainer.getElementsByTagName('tr');
+    if (linhas.length > 0){
+        let estiloAtual = linhas[0].style.display;
+        let novoEstilo = (estiloAtual === 'none') ? '' : 'none';
+        var botao = document.getElementById(`${id}-botao-ocultar`);
+        botao.textContent = (novoEstilo === 'none') ? 'Mostrar linhas' : 'Ocultar linhas';
+        for (let i = 0; i < linhas.length; i++) {
+            linhas[i].style.display = novoEstilo;
+        }
+    }
+}
+
+var todasTabelasOcultas = false;
+function OcultaroOuMostrarTodasTabelasAcoes(){
+    var tabelas = document.querySelectorAll('.tabela-corpo-acao');
+    tabelas.forEach(tabela => {
+        let linhas = tabela.getElementsByTagName('tr');
+        if (linhas.length > 0){
+            let novoEstilo = todasTabelasOcultas ? '' : 'none';
+            var id = tabela.id.split('-')[0];
+            var botao = document.getElementById(`${id}-botao-ocultar`);
+            botao.textContent = todasTabelasOcultas ? 'Ocultar linhas' : 'Mostrar linhas';
+            for (let i = 0; i < linhas.length; i++) {
+                linhas[i].style.display = novoEstilo;
+            }
+        }
+    });
+    var btnGeral = document.getElementById('botao-ocultar-todas-tabelas-acoes');
+    if (btnGeral.textContent === 'Ocultar todas as tabelas'){
+        btnGeral.textContent = 'Mostrar todas as tabelas';
+        todasTabelasOcultas = true;
+    } else {
+        btnGeral.textContent = 'Ocultar todas as tabelas';
+        todasTabelasOcultas = false;
+    }
 }
 
 function adicionarLinhaAcao(id){
@@ -2868,7 +2966,6 @@ function atualizarTotalAplicadoAcoes(){
 }
 
 function processarComprVenda(dicionarioDados){
-    //console.log(dicionarioDados);
   for (var [chave, dados] of Object.entries(dicionarioDados)) {
     if (dados.movimentacao === "venda") {
       for (var [chave_, dado] of Object.entries(dicionarioDados)) {
@@ -3467,6 +3564,7 @@ function getDataFromTable(tableId) {
 
     return { labels, data };
 }
+
 function createChart(chartId, tableId, divId) {
     const divMes = document.getElementById(divId);
     const tituloElement = divMes.getElementsByTagName('h1')[0];
