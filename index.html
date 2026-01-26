@@ -1172,7 +1172,11 @@
                 </div>
                 <!-- Aqui é o Icone 8 //parei-->
                 <div class="Icone8">
-                    <h1 style="margin: 0; padding: 0;">Investimentos <button onclick="addAcao()" class="remover-linha">Adiciona Ação</button></h1>
+                    <h1 style="margin: 0; padding: 0;">Investimentos
+                        <button onclick="addAcao()" class="remover-linha">Adiciona Ação</button>
+                        <button onclick="atualizarValorAcoes()" class="remover-linha">Atualizar o valor das Ações</button>
+                        <button id="botao-ocultar-todas-tabelas-acoes" onclick="OcultaroOuMostrarTodasTabelasAcoes()" class="remover-linha">Ocultar todas as tabelas</button>
+                    </h1>
                     <h3>Total Aplicado: <label id="acoes-total-aplicado" data-valor="0.00">R$ 0,00</label></h3>
                     <h3>Valorizacao: <label id="acoes-total-valorizacao" data-valor="0.00">R$ 0,00 (↓0,000%)</label></h3>
                     <div>
@@ -1180,7 +1184,7 @@
                       Filtro:<input class="descricao-input" id="filtro-Investimento" oninput="filtroInvestimentos()">
                       <button onclick="limparFiltroInvestimentos()" class="remover-linha">Limpar Filtro</button>
                     </h3>
-                    <h3><button id="botao-ocultar-todas-tabelas-acoes" onclick="OcultaroOuMostrarTodasTabelasAcoes()" class="remover-linha">Ocultar todas as tabelas</button></h3>
+                    <h3></h3>
                   </div>
                     <div id="acao-container"></div>
                   <div> <h1 style="margin: 0; padding: 0;" id="div-Proventos-Investimento">Proventos</h1>
