@@ -2719,6 +2719,49 @@ function criarDicionarioGruposInvestimentos(){
   return dicionario;
 }
 
+const BRAPI_TOKEN = "phxtxEeVjYsYqLzdfhdcQ3"
+
+async function retornarValorAcao(codigo) {
+    try {
+        const response = await fetch(`https://brapi.dev/api/quote/${codigo}`, {
+            headers: {
+                "Authorization": `Bearer ${BRAPI_TOKEN}`
+            }
+        })
+
+        if (!response.ok) return null
+
+        const data = await response.json()
+        return data.results?.[0]?.regularMarketPrice ?? null
+    } catch (e) {
+        return null
+    }
+}
+
+
+function atualizarValorAcoes() {
+    const acoes = document.querySelectorAll('.acao')
+
+    for (let i = 0; i < acoes.length; i++) {
+        const codigo = acoes[i].querySelector('.codigos-acoes').value
+
+        if (codigo !== '') {
+            const inputValorCota = acoes[i].querySelector('.valor-cota-acao')
+            const idAcao = acoes[i].id.split('-')[1]
+
+            retornarValorAcao(codigo).then(valor => {
+                if (valor === null) return
+                inputValorCota.dataset.valor = valor
+                inputValorCota.value = formatarMoeda_resultado(valor)
+                formatarMoedaAcao(idAcao)
+                atualizarValorDividendo(idAcao)
+            })
+        }
+    }
+}
+
+
+
 let acaoIdCounter = 0;
 let listaTabelasAcoes = [];
 function addAcao(){
@@ -2742,7 +2785,7 @@ function addAcao(){
             <input id="${acaoIdCounter}-cotas" placeholder="0" disabled class="valor-input">
 
             <label for="${acaoIdCounter}-valor-cota">Valor Cota:</label>
-            <input id="${acaoIdCounter}-valor-cota" placeholder="R$ 0,00" class="valor-input" onblur="formatarMoedaAcao(${acaoIdCounter})" value="R$ 0,00" data-valor="0.0">
+            <input id="${acaoIdCounter}-valor-cota" placeholder="R$ 0,00" class="valor-input valor-cota-acao" onblur="formatarMoedaAcao(${acaoIdCounter})" value="R$ 0,00" data-valor="0.0">
 
             <label for="${acaoIdCounter}-valor-dividendo">Valor Dividendo:</label>
             <input id="${acaoIdCounter}-valor-dividendo" placeholder="R$ 0,00" disabled class="valor-input">
