@@ -1,3 +1,174 @@
+async function baixarModelo() {
+  dicionarioAcoes = criarDicionarioAcao();
+
+  const response = await fetch("public/Preencher_Dividendos.xlsx")
+  const arrayBuffer = await response.arrayBuffer()
+
+  const workbook = XLSX.read(arrayBuffer, { type: "array" })
+  const sheet = workbook.Sheets[workbook.SheetNames[0]]
+
+  var novosDados = []
+    Object.values(dicionarioAcoes).forEach(dados => {
+        novosDados.push([
+            dados.codigo,
+            dados.nomeEmpresa
+        ])
+    })
+
+
+  // ⬇️ começa em F2
+  XLSX.utils.sheet_add_aoa(sheet, novosDados, { origin: "F2" })
+
+  XLSX.writeFile(workbook, "Preencher_Dividendos.xlsx")
+}
+
+document.getElementById("btnImportarExcelProventos")
+  .addEventListener("click", selecionarELerExcel)
+
+function selecionarELerExcel() {
+  const input = document.createElement("input")
+  input.type = "file"
+  input.accept = ".xlsx,.xls"
+
+  input.onchange = function (event) {
+    const arquivo = event.target.files[0]
+    if (!arquivo) return
+
+    const leitor = new FileReader()
+
+    leitor.onload = function (e) {
+      try {
+        const data = new Uint8Array(e.target.result)
+        const workbook = XLSX.read(data, { type: "array" })
+        const sheet = workbook.Sheets[workbook.SheetNames[0]]
+
+        // 🔹 Lê de A2 até D (até acabar as linhas)
+        const linhas = XLSX.utils.sheet_to_json(sheet, {
+          header: 1,
+          range: "A2:D1000",
+          blankrows: false
+        })
+
+        const dicionarioValidos = {}
+
+        let contador = 1;
+        linhas.forEach((linha, index) => {
+          const linhaExcel = index + 2
+
+          const codigo = linha[0]
+          const dataCorte = linha[1]
+          const dataPagamento = linha[2]
+          const valor = linha[3]
+
+          // 1️⃣ codigo existe
+          if (!codigo || !codigoExiste(codigo)) return
+
+          // 2️⃣ datas validas
+          const corte = validarDataExcel(dataCorte)
+          const pagamento = validarDataExcel(dataPagamento)
+          if (!corte || !pagamento) return
+
+          // 3️⃣ valor numerico positivo
+          const valorNum = Number(valor)
+          if (isNaN(valorNum) || valorNum <= 0) return
+
+          // 4️⃣ adiciona ao dicionario final
+          dicionarioValidos[contador] = {
+            codigo,
+            dataCorte: corte,
+            dataPagamento: pagamento,
+            valorUnitario: valorNum
+          }
+            contador++;
+        })
+
+        adicionarProventosDoDicionario(dicionarioValidos);
+
+      } catch (erro) {
+        console.error(erro)
+        alert("Erro ao ler a planilha.")
+      }
+    }
+
+    leitor.onerror = function () {
+      alert("Erro ao ler o arquivo.")
+    }
+
+    leitor.readAsArrayBuffer(arquivo)
+  }
+
+  input.click()
+}
+
+function codigoExiste(codigo) {
+  return Object.values(dicionarioAcoes).some(
+    acao => acao.codigo === codigo
+  )
+}
+
+function validarDataExcel(valor) {
+  if (!valor) return null
+
+  if (valor instanceof Date && !isNaN(valor)) {
+    return valor
+  }
+
+  if (typeof valor === "number") {
+    const d = XLSX.SSF.parse_date_code(valor)
+    if (!d) return null
+    return new Date(d.y, d.m - 1, d.d)
+  }
+
+  if (typeof valor === "string") {
+    const partes = valor.split("/")
+    if (partes.length !== 3) return null
+
+    const dia = parseInt(partes[0], 10)
+    const mes = parseInt(partes[1], 10) - 1
+    const ano = parseInt(partes[2], 10)
+
+    const data = new Date(ano, mes, dia)
+    if (
+      data.getFullYear() !== ano ||
+      data.getMonth() !== mes ||
+      data.getDate() !== dia
+    ) return null
+
+    return data
+  }
+
+  return null
+}
+
+function adicionarProventosDoDicionario(dicionario) {
+    var tabelaCorpo = document.getElementById("proventos-tabela-corpo");
+    Object.values(dicionario).forEach(dado => {
+        addProvento();
+        let novaLinha = tabelaCorpo.querySelectorAll('tr')[0];
+        let caixaSelecao = novaLinha.querySelector('.cod-acoes-escolha');
+        let empresaInput = novaLinha.querySelector('.nome-empresa');
+        let dataCorteInput = novaLinha.querySelector('.data-corte-acoes');
+        let dataPagamento = novaLinha.querySelector('.data-pagamento-acao');
+        let valorUnitarioInput = novaLinha.querySelector('.valor-unitario-acao');
+        let qtdeInput = novaLinha.querySelector('.qtde-cota');
+        let valorTotalInput = novaLinha.querySelector('.valor-total-acao');
+
+        caixaSelecao.value = dado.codigo;
+        dataCorteInput.valueAsDate = dado.dataCorte;
+        dataPagamento.valueAsDate = dado.dataPagamento;
+        valorUnitarioInput.value = dado.valorUnitario;
+
+        formatarValorInput(valorUnitarioInput);
+        preencherProventosAcoes(caixaSelecao, empresaInput, dataCorteInput, qtdeInput, valorUnitarioInput, valorTotalInput); // Chama a função passando o valor selecionado
+        listaCodAcoes();
+
+        novaLinha.style.backgroundColor = "rgba(211, 249, 216, 0.5)";
+        novaLinha.style.color = "black";
+    });
+}
+
+
+
 function boletimGraficoBnt() {
     graficoFuncao();
     boletimGraficoCronograma();
@@ -10,6 +181,7 @@ function boletimGraficoCronograma() {
     var dataAtual = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
 
     for (let i = 1; i <= 12; i++) {
+        var h3 = document.createElement('h3');
         let div = document.createElement('div');
         div.className = 'boletimgraficoContainer';
         const boletim = document.getElementById(`boletim${i}`);
@@ -41,6 +213,9 @@ function boletimGraficoCronograma() {
         cronogramaContainer.id = `cronograma-boletim-${i}`;
         container.appendChild(cronogramaContainer);
         criarCronogramaBoletimMensal(i, cronogramaContainer, dataAtual);
+
+        
+        container.appendChild(h3);
         dataAtual.setMonth(dataAtual.getMonth() + 1);
     }
 }
@@ -840,6 +1015,31 @@ function preencherDistribuicaoPonderada(caixaSelecao, empresaInput, valorCota, p
 
   }
   calcularDistribuicaoPonderadaInvestimento();
+}
+
+function calcularTaxaRetornoDistribuicaoPonderada(codigoAcao){
+    dicionarioProventosAcoes = criarDicionarioProventosAcoes();
+    dicionarioAcoes = criarDicionarioAcao();
+
+    let contadorProvento = 0; let valorTotalProvento = 0;
+    for (const [rendKey, provento] of Object.entries(dicionarioProventosAcoes)) {
+        if (provento.codigo === codigoAcao){
+            contadorProvento ++;
+            valorTotalProvento += parseFloat(provento.valorUnitario);
+        }
+    }
+    let media = contadorProvento === 0 ? 0 : valorTotalProvento / contadorProvento;
+
+    let valorCota = 0;
+    for (const [rendKey, acao] of Object.entries(dicionarioAcoes)) {
+        if (acao.codigo === codigoAcao){      
+            valorCota = acao.valorCota;
+            break
+        }
+    }
+
+    let taxa = valorCota === 0 ? 0 : media / valorCota * 100;
+    return parseFloat(taxa.toFixed(3));
 }
 
 function calcularDistribuicaoPonderadaInvestimento(){
@@ -2603,6 +2803,7 @@ function addGrupoinvestimento(){
                             <th>Empresa</th>
                             <th>Valor Aplicado</th>
                             <th>Valorização</th>
+                            <th>Taxa Retorno</th>
                             <th>Ações</th>
                         </tr>
                     </thead>
@@ -2630,6 +2831,7 @@ function adicionarLinhaGrupoInvestimento(id){
         <td><input class="descricao-input" disabled></td>
         <td><input type="text" class="valor-input valor-aplicado-parte-grupo" data-valor="0" disabled></td>
         <td><label class="valorizacao" data-valor="0">R$ 0,00 (0,000)</label></td>
+        <td><label class="taxa-retorno"></label></td>
         <td><button class="remover-linha">Remover</button></td>
     `;
     if (!carregou) {tabelaCorpo.appendChild(novaLinha);}
@@ -2657,11 +2859,14 @@ function atualizaTotaisGrupo(id){
   let linhas = tabelaCorpo.getElementsByTagName('tr');
   let valorAplicadoTotal = 0;
   let valorizacaoTotal = 0;
+  let taxaRetorno = 0;
   
   for (let i = 0; i < linhas.length; i++) {
     var colunas = linhas[i].getElementsByTagName('td');
     valorAplicadoTotal += parseFloat(colunas[2].querySelector('.valor-aplicado-parte-grupo').getAttribute('data-valor'));
     valorizacaoTotal += parseFloat(colunas[3].querySelector('.valorizacao').getAttribute('data-valor'));
+    taxaRetorno = calcularTaxaRetornoDistribuicaoPonderada(colunas[0].querySelector('.cod-acoes-escolha').value);
+    colunas[4].querySelector('.taxa-retorno').textContent = `${(taxaRetorno).toFixed(3).replace('.', ',')}%`;
   }
   let valorAplicadoInput = document.getElementById(`grupo-investimento-${id}-valor-aplicado`);
   let valorizacaoLabel = document.getElementById(`grupo-investimento-${id}-valor-valorizacao`);
@@ -2695,6 +2900,22 @@ function atualizaTotaisGrupoGeral() {
   }
 }
 
+function addGrupoinvestimentoComTodos(){
+    dicionarioAcoes = criarDicionarioAcao();
+
+    addGrupoinvestimento();
+    var tabelaCorpo = document.getElementById(`grupo-investimento-${grupoInvestimentoIdCounter}-tabela`);
+    for (var [_, dados] of Object.entries(dicionarioAcoes)) {
+        adicionarLinhaGrupoInvestimento(grupoInvestimentoIdCounter);
+        let linhas = tabelaCorpo.getElementsByTagName('tr');
+        var selectInput = linhas[0].querySelector('.cod-acoes-escolha');
+        selectInput.value = dados.codigo;
+
+        prenecherDadosGrupos(selectInput, linhas[0].querySelector('.descricao-input'), linhas[0].querySelector('.valor-aplicado-parte-grupo'), linhas[0].querySelector('.valorizacao'));
+    }
+    atualizaTotaisGrupo(grupoInvestimentoIdCounter);
+}
+
 function criarDicionarioGruposInvestimentos(){
   var grupos = document.querySelectorAll('.grupoInvestimento');
   var dicionario = {};
@@ -2721,26 +2942,63 @@ function criarDicionarioGruposInvestimentos(){
 
 const BRAPI_TOKEN = "phxtxEeVjYsYqLzdfhdcQ3"
 
-async function retornarValorAcao(codigo) {
+const LS_CHAVE_DADOS = "dicionarioAcoesValores"
+const LS_CHAVE_DATA  = "dataAtualizacaoAcoesValores"
+const intervaloAtualizacaoAcoesValores = 15 * 60 * 1000 // 15 minutos
+
+var dicionarioDadosAcoes = localStorage.getItem(LS_CHAVE_DADOS)? JSON.parse(localStorage.getItem(LS_CHAVE_DADOS)) : {};
+
+async function carregarDicionarioAcoes() {
+    const agora = Date.now()
+
+    // ❌ cache inválido → busca novamente
     try {
-        const response = await fetch(`https://brapi.dev/api/quote/${codigo}`, {
-            headers: {
-                "Authorization": `Bearer ${BRAPI_TOKEN}`
+        const response = await fetch(
+            `https://brapi.dev/api/quote/list?token=${BRAPI_TOKEN}`
+        )
+
+        if (!response.ok) return {}
+
+        const data = await response.json()
+
+        // 🔁 converte stocks[] → dicionário
+        const dicionario = {}
+
+        data.stocks.forEach(item => {
+            dicionario[item.stock] = {
+                name: item.name,
+                close: item.close,
+                change: item.change,
+                volume: item.volume,
+                market_cap: item.market_cap,
+                logo: item.logo,
+                sector: item.sector,
+                type: item.type
             }
         })
 
-        if (!response.ok) return null
+        // 💾 salva no localStorage
+        localStorage.setItem(LS_CHAVE_DADOS, JSON.stringify(dicionario))
+        localStorage.setItem(LS_CHAVE_DATA, agora.toString())
 
-        const data = await response.json()
-        return data.results?.[0]?.regularMarketPrice ?? null
+        dicionarioDadosAcoes = dicionario
+
     } catch (e) {
-        return null
+        console.error(e)
+        return {}
     }
 }
 
-
 function atualizarValorAcoes() {
-    const acoes = document.querySelectorAll('.acao')
+    const acoes = document.querySelectorAll('.acao');
+    var ultimaAtualizacao = localStorage.getItem(LS_CHAVE_DATA);
+    const agora = Date.now();
+
+    if (!ultimaAtualizacao || (agora - parseInt(ultimaAtualizacao)) > intervaloAtualizacaoAcoesValores){
+        carregarDicionarioAcoes();
+    }
+
+    var codigosNaoEncontrados = {};
 
     for (let i = 0; i < acoes.length; i++) {
         const codigo = acoes[i].querySelector('.codigos-acoes').value
@@ -2749,18 +3007,81 @@ function atualizarValorAcoes() {
             const inputValorCota = acoes[i].querySelector('.valor-cota-acao')
             const idAcao = acoes[i].id.split('-')[1]
 
-            retornarValorAcao(codigo).then(valor => {
-                if (valor === null) return
-                inputValorCota.dataset.valor = valor
-                inputValorCota.value = formatarMoeda_resultado(valor)
-                formatarMoedaAcao(idAcao)
-                atualizarValorDividendo(idAcao)
-            })
+            if (dicionarioDadosAcoes[codigo]) {
+                const valor = dicionarioDadosAcoes[codigo].close;
+                inputValorCota.dataset.valor = valor;
+                inputValorCota.value = formatarMoeda_resultado(valor);
+                formatarMoedaAcao(idAcao);
+                atualizarValorDividendo(idAcao);
+            } else {
+                console.warn(`Código não encontrado: ${codigo}`);
+                codigosNaoEncontrados[codigo] = {
+                    'inputValorCota': inputValorCota,
+                    'idAcao': idAcao
+                }
+            }
         }
     }
+    buscarAcoesNaoEncontradas(codigosNaoEncontrados);
+
 }
 
+async function buscarAcoesNaoEncontradas(codigosNaoEncontrados) {
+    const codigos = Object.keys(codigosNaoEncontrados)
+    var dicionario = {};
 
+    if (codigos.length === 0) return
+    try {
+        const symbols = codigos.map(c => c + ".SA").join(",")
+
+        const response = await fetch(
+            `https://brapi.dev/api/quote/list?symbols=${symbols}&token=${BRAPI_TOKEN}`
+        )
+
+        if (!response.ok) return
+
+        const data = await response.json()
+
+        if (!data.results) return
+
+        data.stocks.forEach(item => {
+            dicionario[item.stock] = {
+                name: item.name,
+                close: item.close,
+                change: item.change,
+                volume: item.volume,
+                market_cap: item.market_cap,
+                logo: item.logo,
+                sector: item.sector,
+                type: item.type
+            }   
+        })
+
+        localStorage.setItem(
+            LS_CHAVE_DADOS,
+            JSON.stringify(dicionario)
+        )
+
+        localStorage.setItem(
+            LS_CHAVE_DATA,
+            Date.now().toString()
+        )
+
+        for (const codigo of codigos) {
+            if (dicionario[codigo]) {
+                const valor = dicionario[codigo].close;
+                const { inputValorCota, idAcao } = codigosNaoEncontrados[codigo];
+                inputValorCota.dataset.valor = valor;
+                inputValorCota.value = formatarMoeda_resultado(valor);
+                formatarMoedaAcao(idAcao);
+                atualizarValorDividendo(idAcao);
+            }
+        }
+
+    } catch (e) {
+        console.error(e)
+    }
+}
 
 let acaoIdCounter = 0;
 let listaTabelasAcoes = [];
