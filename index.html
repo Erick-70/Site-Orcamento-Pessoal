@@ -1189,7 +1189,11 @@
                     <div id="acao-container"></div>
                   <div> <h1 style="margin: 0; padding: 0;" id="div-Proventos-Investimento">Proventos</h1>
                         <div id="proventos-investimentos">
-                        <h3><button onclick="addProvento()" class="remover-linha">Adicionar Provento</button></h3>
+                        <h3>
+                            <button onclick="addProvento()" class="remover-linha">Adicionar Provento</button>
+                            <button onclick="baixarModelo()" class="remover-linha">Baixar Modelo</button>
+                            <button id="btnImportarExcelProventos" class="remover-linha">Importar planilha de dividendos</button>
+                        </h3>
                         <div>
                           <h3>
                             Filtro:<input class="descricao-input" id="filtro-Proventos" oninput="filtroProvento()">
@@ -1219,7 +1223,7 @@
                   <div style="margin: 5px; padding: 0;"></div>
                   <div> <h1 style="margin: 0; padding: 0;" id="div-Grupos-Investimento">Grupos</h1>
                       <div id="grupos-investimentos">
-                        <h3><button onclick="addGrupoinvestimento()" class="remover-linha">Adicionar Grupo</button></h3>
+                        <h3><button onclick="addGrupoinvestimento()" class="remover-linha">Adicionar Grupo</button> <button onclick="addGrupoinvestimentoComTodos()" class="remover-linha">Adicionar Grupo com Todos</button></h3>
                       <div id="grupos-investimento-container"></div>
                     </div>
                   </div>
@@ -1400,5 +1404,6 @@
     <script src="script.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 </body>
 </html>
