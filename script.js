@@ -1,5 +1,14 @@
 async function baixarModelo() {
+    function formatarData(data) {
+        let _ = new Date(data);
+        var resultado = new Date(_.getFullYear(), _.getMonth(), _.getDate() +1);
+        return resultado;
+    }
+
+
+
   dicionarioAcoes = criarDicionarioAcao();
+  var dicionarioDadosProventos = {};
 
   const response = await fetch("public/Preencher_Dividendos.xlsx")
   const arrayBuffer = await response.arrayBuffer()
@@ -15,9 +24,35 @@ async function baixarModelo() {
         ])
     })
 
+    let tabelaCorpo = document.getElementById("proventos-tabela-corpo");
+    let linhas = tabelaCorpo.getElementsByTagName("tr");
+    let contador = 0;
+    for (let i = 0; i < linhas.length; i++) {
+        const linha = linhas[i];
+        const celulas = linha.getElementsByTagName("td");
+        dicionarioDadosProventos[contador] = {
+            codigo: celulas[0].querySelector('.cod-acoes-escolha').value,
+            dataCorte: formatarData(celulas[2].querySelector('.data-corte-acoes').valueAsDate),
+            dataPagamento: formatarData(celulas[3].querySelector('.data-pagamento-acao').valueAsDate),
+            valorUnitario: parseFloat(celulas[4].querySelector('.valor-unitario-acao').getAttribute('data-valor'))
+        }
+        contador++;
+    }
 
   // ⬇️ começa em F2
   XLSX.utils.sheet_add_aoa(sheet, novosDados, { origin: "F2" })
+
+    // ⬇️ começa em A2
+    let dadosProventos = []
+    Object.values(dicionarioDadosProventos).forEach(dado => {
+        dadosProventos.push([
+            dado.codigo,
+            dado.dataCorte,
+            dado.dataPagamento,
+            dado.valorUnitario
+        ])
+    })
+    XLSX.utils.sheet_add_aoa(sheet, dadosProventos, { origin: "A2" })
 
   XLSX.writeFile(workbook, "Preencher_Dividendos.xlsx")
 }
@@ -142,6 +177,8 @@ function validarDataExcel(valor) {
 
 function adicionarProventosDoDicionario(dicionario) {
     var tabelaCorpo = document.getElementById("proventos-tabela-corpo");
+    var btnsExcluir = tabelaCorpo.querySelectorAll('.remover-linha');
+    btnsExcluir.forEach(btn => btn.click());
     Object.values(dicionario).forEach(dado => {
         addProvento();
         let novaLinha = tabelaCorpo.querySelectorAll('tr')[0];
@@ -4010,6 +4047,7 @@ function createChart(chartId, tableId, divId) {
         }
     });
 }
+
 
 
 function graficoFuncao() {
