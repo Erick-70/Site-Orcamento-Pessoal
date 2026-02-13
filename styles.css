@@ -213,6 +213,11 @@
   padding: 0px;
 }
 
+.caixa-item h3{
+  margin: 0px;
+  padding: 0px;
+}
+
 input, button, select{
   border-radius: 8px; /* Bordas arredondadas */
   box-sizing: border-box; /* Inclui o padding na largura total */
@@ -397,6 +402,14 @@ textarea {
     padding: 20px;
     margin: 20px auto;
     max-height: 400px; /* Defina uma altura máxima */
+    overflow-y: auto; /* Permitir rolagem vertical */
+}
+
+.caixa-item {
+    border: 2px solid #000;
+    padding: 20px;
+    margin: 20px auto;
+    /*max-height: 800px; /* Defina uma altura máxima */
     overflow-y: auto; /* Permitir rolagem vertical */
 }
 
