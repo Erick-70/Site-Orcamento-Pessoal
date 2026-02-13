@@ -1,3 +1,773 @@
+function criarCronogramaCaixas (){
+    let saldoStatus = true;
+    let dicionarioValoresMensaisCartoes = calcularValoresMensais(dicionarioReceitas, dicionarioCartoes, dicionarioDiversos, dicionarioCofrinho, dicionarioAcoes, dicionarioProventosAcoes, dicionarioMoedas, hoje, 12);
+    criarBaseBoletimCaixa(dicionarioValoresMensaisCartoes["1"]);
+    const divsCronogramasCaixas = document.querySelectorAll('.cronograma-caixas');
+    const saldosCaixasIniciais = document.querySelectorAll('.caixa-saldo-input');
+    const saldoAtuais = document.querySelectorAll('.caixa-saldo-atual-input'); 
+    let diaHoje = hoje.getDate();
+
+    let contador = 0;
+
+    divsCronogramasCaixas.forEach(divCronogramaCaixa => {
+        let saldo = 0;
+        let saldoFormatado = parseFloat(saldo).toFixed(2);
+        saldoFormatado = formatarResultado(saldoFormatado, 2)
+        
+        let dados = dicionarioCronogramaCaixas[contador];
+        let saldoInicial = parseFloat(saldosCaixasIniciais[contador].getAttribute('data-valor')) || 0;
+        saldo = saldoInicial;
+
+        let _valor = parseFloat(saldo).toFixed(2);
+        _valor = formatarResultado(saldo.toString(), 2);
+        
+        var novaLinha = document.createElement('tr');
+        
+        novaLinha.innerHTML = `
+            <td><label style="width: 200px;">Saldo Passado</label></td>
+            <td><label data-valor="${saldo}" style="width: 85px;">R$ ${_valor}</label></td>
+            <td><label style="width: 200px;">1</label></td>
+            <td class='boletim-mensal-saldo'><label>R$ ${_valor}</label></td>
+        `;
+
+        novaLinha.style.backgroundColor = 'rgba(211, 249, 216, 0.5)' // verde claro, 50% transparente
+        novaLinha.style.color = 'black';
+
+        divCronogramaCaixa.innerHTML = '';
+        divCronogramaCaixa.appendChild(novaLinha);
+
+        for (let dia = 1; dia <= 31; dia++) {
+            // Verifica se o dia está presente nos dados
+            for (const chave in dados) {
+                if (dados[chave].dia === dia) {
+                    const descricao = dados[chave].descricao;
+                    const valor = dados[chave].valor;
+
+                    //if (valor > 0) {entradas += valor}
+                    //else {saidas += valor}
+
+                    // Formata o valor
+                    let _valor = parseFloat(valor).toFixed(2);
+                    _valor = formatarResultado(_valor.toString(), 2);
+
+                    // Atualiza o saldo
+                    saldo += valor;
+                    saldoFormatado = parseFloat(saldo).toFixed(2);
+                    saldoFormatado = formatarResultado(saldoFormatado, 2)
+
+                    // Cria uma nova linha
+                    const novaLinha = document.createElement('tr');
+                    if (dados[chave].tipo === 'boletim-mensal-cofrinho'){
+                        totalCofrinho += valor*-1;
+                        novaLinha.title = `Total Aplicado: ${formatarMoeda_resultado(totalCofrinho)}`;
+                        dados[chave].explicacao = `Total Aplicado: ${formatarMoeda_resultado(totalCofrinho)}`;
+                    } else {
+                        novaLinha.title = dados[chave].explicacao;
+                    }
+                    if (dados[chave].movimentacao === 'entrada'){
+                        novaLinha.style.backgroundColor = 'rgba(211, 249, 216, 0.5)' // verde claro, 50% transparente
+                    } else if (dados[chave].movimentacao === 'saida'){
+                        novaLinha.style.backgroundColor = 'rgba(255, 204, 204, 0.5)' // rosa claro, 50% transparente
+                    } else {
+                        novaLinha.style.backgroundColor = 'rgba(211, 237, 249, 0.5)' 
+                    }
+
+                    novaLinha.style.color = 'black';  // Cor do texto 
+
+                    novaLinha.className = `${dados[chave].tipo} boletim-mensal-Descricao-Item  linha-${dados[chave].movimentacao}`;
+                    novaLinha.setAttribute('movimentacao', `movimentacao-${dados[chave].movimentacao}`);
+
+                    novaLinha.setAttribute('valorLinha', valor);
+                    novaLinha.innerHTML = `
+                        <td><label style="width: 200px;">${descricao}</label></td>
+                        <td><label data-valor="${valor}" style="width: 85px;">R$ ${_valor}</label></td>
+                        <td><label style="width: 200px;">${dia}</label></td>
+                        <td class='boletim-mensal-saldo'><label>R$ ${saldoFormatado}</label></td>
+                    `;
+
+                    novaLinha.addEventListener('click', () => {
+                        notificacaoExplicacaoLinha(dados[chave].explicacao);
+                    });
+
+                    // Adiciona a nova linha ao tbody
+                    divCronogramaCaixa.appendChild(novaLinha);
+                }
+            }
+
+             if (dia === diaHoje) {
+                saldoAtuais[contador].value = saldoFormatado;
+            }
+        }
+        contador++;
+    });
+}
+
+let contadorCaixas = 0;
+
+function addCaixa() {
+    const divContainer = document.getElementById('caixas-container');
+
+    const novaDiv = document.createElement('div');
+    novaDiv.className = 'caixa-item';
+    novaDiv.setAttribute('data-caixa-id', contadorCaixas);
+
+    novaDiv.innerHTML = `
+        <div class="caixa-header" id="caixa-header-${contadorCaixas}">
+            <label for="caixa-nome-${contadorCaixas}">Nome da Caixa:</label>
+            <input type="text" id="caixa-nome-${contadorCaixas}" class="caixa-nome-input descricao-input" placeholder="Nome da Caixa">
+
+            <label for="caixa-saldo-${contadorCaixas}">Saldo Inicial:</label>
+            <input type="text" id="caixa-saldo-${contadorCaixas}" class="caixa-saldo-input valor-input" placeholder="R$ 0,00" data-valor="0" onblur="formatarValorCaixaLivre(this, ${contadorCaixas})">
+
+            <label for="caixa-saldo-atual-${contadorCaixas}">Saldo Atual:</label>
+            <input type="text" id="caixa-saldo-atual-${contadorCaixas}" class="caixa-saldo-atual-input valor-input" placeholder="R$ 0,00" disabled data-valor="0">
+
+            <button class="remover-linha" onclick="removerCaixa(${contadorCaixas})">Remover Caixa</button>
+
+            <p></p>
+            <div class="caixa-body">
+                <h3>Itens da Caixa Livre <button onclick="adicionarItemCaixaLivre(${contadorCaixas})" class="remover-linha">Adicionar Item</button></h3>
+                <div class="itens-caixa-container" id="itens-caixa-container-${contadorCaixas}"></div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Movimentação</th>
+                            <th>Descrição</th>
+                            <th>Valor</th>
+                            <th>Data</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody class="tabela-caixa-movimentacao-livre" id="tabela-caixa-${contadorCaixas}-movimentacao-livre">
+                        <!-- Linhas da tabela serão adicionadas aqui -->
+                    </tbody>
+                </table>
+            </div>
+
+            <p></p>
+            <div class="caixa-body">
+                <h3>Itens da Caixa Fixa <button onclick="adicionarItemCaixaFixa(${contadorCaixas})" class="remover-linha">Adicionar Item</button></h3>
+                <div class="itens-caixa-container" id="itens-caixa-fixa-container-${contadorCaixas}"></div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Fonte</th>
+                            <th>Descrição</th>
+                            <th>Valor</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody class="tabela-caixa-movimentacao-fixa" id="tabela-caixa-${contadorCaixas}-movimentacao-fixa">
+                        <!-- Linhas da tabela serão adicionadas aqui -->
+                    </tbody>
+                </table>
+            </div>
+
+            <p></p>
+            <div class="caixa-body">
+                <h3> Cronograma</h3>
+                <div class="cronograma-container" id="cronograma-container-caixa-${contadorCaixas}">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Descrição</th>
+                                <th>Valor</th>
+                                <th>Dia</th>
+                                <th>Saldo</th>
+                            </tr>
+                        </thead>
+                        <tbody class="cronograma-caixas" id="cronograma-caixa-${contadorCaixas}">
+                            <!-- Linhas da tabela serão adicionadas aqui -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    `
+    divContainer.appendChild(novaDiv);
+    contadorCaixas++;
+}
+
+function removerCaixa(idCaixa) {
+    const divContainer = document.getElementById('caixas-container');
+    const caixaParaRemover = divContainer.querySelector(`div[data-caixa-id="${idCaixa}"]`);
+    if (caixaParaRemover) {
+        divContainer.removeChild(caixaParaRemover);
+    }
+}
+
+function adicionarItemCaixaLivre(idCaixa) {
+    const tabelaCorpo = document.getElementById(`tabela-caixa-${idCaixa}-movimentacao-livre`);
+    const novaLinha = document.createElement('tr');
+    novaLinha.innerHTML = `
+        <td>
+            <select class="caixa-movimentacao-livre-tipo descricao-input ">
+                <option value="entrada">Entrada</option>
+                <option value="saida">Saída</option>
+                <option value="retorno">Retornar</option>
+            </select>
+        </td>
+        <td><input type="text" class="caixa-movimentacao-livre-descricao descricao-input" placeholder="Descrição"></td>
+        <td><input type="text" class="caixa-movimentacao-livre-valor valor-input" placeholder="R$ 0,00" onblur="formatarValorCaixaLivre(this, ${idCaixa})"></td>
+        <td><input type="date" class="caixa-movimentacao-livre-data data-input"></td>
+        <td><button class="remover-linha" onclick="removerItemCaixaLivre(this)">Remover</button></td>
+    `;
+
+    if (!carregou) {tabelaCorpo.appendChild(novaLinha);}
+    else {tabelaCorpo.insertBefore(novaLinha, tabelaCorpo.firstChild);}
+
+    var dataInput = novaLinha.querySelector('.caixa-movimentacao-livre-data');
+    const hoje = new Date();
+    dataInput.value = hoje.toISOString().split('T')[0];
+
+    const btnRemover = novaLinha.querySelector('.remover-linha');
+    btnRemover.addEventListener('click', function() {
+        removerItemCaixaLivre(this);
+        ataulizarSaldoCaixas(idCaixa);
+    });
+
+    var inputMovimentaca = novaLinha.querySelector('.caixa-movimentacao-livre-tipo');
+    inputMovimentaca.addEventListener('change', function() {
+        ataulizarSaldoCaixas(idCaixa);
+    });
+
+    dataInput.addEventListener('change', function() {
+        ataulizarSaldoCaixas(idCaixa);
+    })
+    ataulizarSaldoCaixas(idCaixa);
+}
+
+function formatarValorCaixaLivre(input, idCaixa) {
+    let valorTexto = input.value.replace('R$','').replace(/\./g,'').replace(',','.');
+    let valorNum = parseFloat(valorTexto);
+    if (isNaN(valorNum)) {
+        valorNum = 0;
+    }
+    input.value = `R$ ${formatarResultado(valorNum.toFixed(2), 2)}`;
+    input.setAttribute('data-valor', valorNum);
+    ataulizarSaldoCaixas(idCaixa);
+}
+
+function removerItemCaixaLivre(botao) {
+    const linha = botao.closest('tr');
+    linha.remove();
+}
+
+function adicionarItemCaixaFixa(idCaixa) {
+    const tabelaCorpo = document.getElementById(`tabela-caixa-${idCaixa}-movimentacao-fixa`);
+    const novaLinha = document.createElement('tr');
+    novaLinha.classList.add(`movimentacao-caixa-fixa-linha-${idCaixa}`);
+    novaLinha.innerHTML = `
+        <td>
+            <select class="caixa-movimentacao-fixa-fonte descricao-input">
+                <option value="cartao">Cartão</option>
+                <option value="receita">Receita</option>
+                <option value="dividas-diversas">Dívidas Diversas</option>
+                <option value="investimento">Investimento</option>
+                <option value="cambio">Câmbio</option>
+                <option value="cofrinho">Cofrinho</option>
+            </select>
+        </td>
+        <td>
+            <select class="caixa-movimentacao-fixa-tipo descricao-input">
+        </td>
+        <td><input type="text" class="caixa-movimentacao-fixa-valor valor-input" placeholder="R$ 0,00" disabled></td>
+        <td><button class="remover-linha" onclick="removerItemCaixaFixa(this, ${idCaixa})">Remover</button></td>
+    `;
+    if (!carregou) {tabelaCorpo.appendChild(novaLinha);}
+    else {tabelaCorpo.insertBefore(novaLinha, tabelaCorpo.firstChild);}
+
+    const btnRemover = novaLinha.querySelector('.remover-linha');
+    btnRemover.addEventListener('click', function() {
+        removerItemCaixaFixa(this, idCaixa);
+    });
+
+    const selectFonte = novaLinha.querySelector('.caixa-movimentacao-fixa-fonte');
+    const selectTipo = novaLinha.querySelector('.caixa-movimentacao-fixa-tipo');
+    const inputValorFixa = novaLinha.querySelector('.caixa-movimentacao-fixa-valor');
+
+    selectFonte.addEventListener('change', function() {
+        atualizarSelectTipo(selectFonte, selectTipo, inputValorFixa);
+        ataulizarSaldoCaixas(idCaixa);
+    });
+    atualizarSelectTipo(selectFonte, selectTipo, inputValorFixa);
+
+    selectTipo.addEventListener('change', function() {
+        let valor = parseFloat(selectTipo.value).toFixed(2) *1;
+        let valor_ = `R$ ${formatarResultado(valor.toString(), 2)}`;
+        inputValorFixa.value = valor_;
+        inputValorFixa.setAttribute('data-valor', valor);
+        ataulizarSaldoCaixas(idCaixa);
+    });
+    ataulizarSaldoCaixas(idCaixa);
+    lsitaItensFixos.push(novaLinha);
+}
+
+
+function atualizarSelectTipo(selectFonte, selectTipo, inputValorFixa) {
+    inputValorFixa.value = 'R$ 0,00';
+    inputValorFixa.setAttribute('data-valor', '0');
+    const dicionarioGeralTipoCaixaFixa = criarDicionarioGeralTipoCaixaFixa();
+    const fonteSelecionada = selectFonte.value;
+    let opcoesTipo = {};
+    switch (fonteSelecionada) {
+        case 'cartao':
+            opcoesTipo = dicionarioGeralTipoCaixaFixa['cartao'] || {};
+            break;
+        case 'receita':
+            opcoesTipo = dicionarioGeralTipoCaixaFixa['receita'] || {};
+            break;
+        case 'dividas-diversas':
+            opcoesTipo = dicionarioGeralTipoCaixaFixa['dividas-diversas'] || {};
+            break;
+        case 'investimento':
+            opcoesTipo = dicionarioGeralTipoCaixaFixa['investimento'] || {};
+            break;
+        case 'cambio':
+            opcoesTipo = dicionarioGeralTipoCaixaFixa['cambio'] || {};
+            break;
+        case 'cofrinho':
+            opcoesTipo = dicionarioGeralTipoCaixaFixa['cofrinho'] || {};
+            break;
+        default:
+            opcoesTipo = {};
+    }
+
+    selectTipo.innerHTML = '';
+    for (const chave in opcoesTipo) {
+        const descricao = opcoesTipo[chave].descricao;
+        const valor = opcoesTipo[chave].valor;
+        const option = document.createElement('option');
+        option.value = valor;
+        option.textContent = descricao;
+        selectTipo.appendChild(option);
+    }
+
+}
+
+function criarDicionarioGeralTipoCaixaFixa() {
+    dicionarioReceitas = atualizarDadosReceitas();
+    dicionarioCartoes = atualizarDadosCartoes();
+    dicionarioDiversos = atualizarDadosDiversos();
+    dicionarioCofrinho = criarDicionarioCofrinho();
+    dicionarioAcoes = criarDicionarioAcao();
+    dicionarioProventosAcoes = criarDicionarioProventosAcoes();
+    dicionarioMoedas = criarDicionarioMoedas();
+    let dataHoje = new Date(hoje.getFullYear(), hoje.getMonth(), 5);
+
+    let dicionarioValoresMensaisCartoes = calcularValoresMensais(dicionarioReceitas, dicionarioCartoes, dicionarioDiversos, dicionarioCofrinho, dicionarioAcoes, dicionarioProventosAcoes, dicionarioMoedas, dataHoje);
+
+    var dicionarioGeralTipoCaixaFixa = {
+        'receita': {
+            0: {
+                descricao: 'Selecione',
+                valor: 0
+            }
+        },
+        'cartao': {
+            0: {
+                descricao: 'Selecione',
+                valor: 0
+            }
+        },
+        'dividas-diversas': {
+            0: {
+                descricao: 'Selecione',
+                valor: 0
+            }
+        },
+        'investimento': {
+            0: {
+                descricao: 'Selecione',
+                valor: 0
+            }
+        },
+        'cambio': {
+            0: {
+                descricao: 'Selecione',
+                valor: 0
+            }
+        },
+        'cofrinho': {
+            0: {
+                descricao: 'Selecione',
+                valor: 0
+            }
+        }
+    };
+
+    let contador = {'receita': 1, 'cartao': 1, 'dividas-diversas': 1, 'investimento': 1, 'cambio': 1, 'cofrinho': 1};
+    let totais = {'receita': 0, 'cartao': 0, 'dividas-diversas': 0, 'investimento': 0, 'cambio': 0, 'cofrinho': 0, 'investimento-proventos': 0, 'investimento-venda': 0, 'investimento-compra': 0, 'cofrinho-entrada': 0, 'cofrinho-saida': 0};
+
+    let dicionarioTotaisAdicional = {1:['investimento', 'investimento-proventos', 'provento'], 2:['investimento', 'investimento-venda', 'venda'], 3:['investimento', 'investimento-compra', 'compra'], 4:['cofrinho', 'cofrinho-entrada', 'entrada'], 5:['cofrinho', 'cofrinho-saida', 'saida']};
+
+    for (const chave in dicionarioValoresMensaisCartoes[1]) {
+        let dicionario = dicionarioValoresMensaisCartoes[1];
+        if (chave !== "data") {
+            let tipo = dicionario[chave].tipo.replace('boletim-mensal-', '').toLowerCase();
+            if (!(tipo in dicionarioGeralTipoCaixaFixa)) {
+                dicionarioGeralTipoCaixaFixa[tipo] = {};
+                dicionarioGeralTipoCaixaFixa[tipo][contador[tipo]] = {
+                    descricao: 'Selecione',
+                    valor: 0
+                };
+                contador[tipo]++;
+            }
+            dicionarioGeralTipoCaixaFixa[tipo][contador[tipo]] = {
+                descricao: dicionario[chave].descricao,
+                valor: dicionario[chave].valor
+            }
+            totais[tipo] += dicionario[chave].valor;
+            
+            let subtipo = ''
+            if (tipo === 'investimento') {
+                if (dicionario[chave].descricao.toLowerCase().includes('provento')) {
+                    subtipo = 'proventos';
+                } else if (dicionario[chave].descricao.toLowerCase().includes('compra')) {
+                    subtipo = 'compra';
+                } else if (dicionario[chave].descricao.toLowerCase().includes('venda')) {
+                    subtipo = 'venda';
+                }
+                totais[`investimento-${subtipo}`] += dicionario[chave].valor || 0;
+            } else if (tipo === 'cofrinho') {
+                if (dicionario[chave].descricao.toLowerCase().includes('retirar')) {
+                    subtipo = 'entrada';
+                } else if (dicionario[chave].descricao.toLowerCase().includes('Depositar')) {
+                    subtipo = 'saida';
+                }
+                totais[`cofrinho-${subtipo}`] += dicionario[chave].valor || 0;
+            }
+            contador[tipo]++;
+        }
+    }
+
+    for (const tipo in dicionarioGeralTipoCaixaFixa) {
+        dicionarioGeralTipoCaixaFixa[tipo][contador[tipo]] = {
+            descricao: 'Total',
+            valor: totais[tipo]
+        };
+    }
+
+    for (const chave in dicionarioTotaisAdicional) {
+        const [tipo, subtipo, descricao] = dicionarioTotaisAdicional[chave];
+        contador[tipo]++;
+        dicionarioGeralTipoCaixaFixa[tipo][contador[tipo]] = {
+            descricao: `Total ${descricao}`,
+            valor: totais[subtipo]
+        };
+    }
+
+    return dicionarioGeralTipoCaixaFixa;    
+}
+
+function removerItemCaixaFixa(botao, idCaixa) {
+    const linha = botao.closest('tr');
+    linha.remove();
+    ataulizarSaldoCaixas(idCaixa)
+}
+
+
+function ataulizarSaldoCaixas(idCaixa) {
+    const inputSaldoAtual = document.getElementById(`caixa-saldo-atual-${idCaixa}`);
+    let saldoAtual = 0;
+
+    const inputSaldoInicial = document.getElementById(`caixa-saldo-${idCaixa}`);
+    let saldoInicial = parseFloat(inputSaldoInicial.getAttribute('data-valor')) || 0;
+    saldoAtual += saldoInicial;
+
+    const tabelaCorpoLivre = document.getElementById(`tabela-caixa-${idCaixa}-movimentacao-livre`);
+    const tabelaCorpoFixa = document.getElementById(`tabela-caixa-${idCaixa}-movimentacao-fixa`);
+    
+    const linhasLivre = tabelaCorpoLivre.getElementsByTagName('tr');
+    const linhasFixa = tabelaCorpoFixa.getElementsByTagName('tr');
+    
+    for (let i = 0; i < linhasLivre.length; i++) {
+        const linha = linhasLivre[i];
+        const celulas = linha.getElementsByTagName('td');
+        let inputValor = celulas[2].querySelector('.caixa-movimentacao-livre-valor');
+        let tipoMovimentacao = celulas[0].querySelector('.caixa-movimentacao-livre-tipo').value;
+        let valor = parseFloat(inputValor.getAttribute('data-valor')) || 0;
+        if (tipoMovimentacao === 'entrada') {
+            saldoAtual += valor;
+        } else if (tipoMovimentacao === 'saida' || tipoMovimentacao === 'retorno') {
+            saldoAtual -= valor;
+        }
+    }
+    
+    for (let i = 0; i < linhasFixa.length; i++) {
+        const linha = linhasFixa[i];
+        const celulas = linha.getElementsByTagName('td');
+        let inputValor = celulas[2].querySelector('.caixa-movimentacao-fixa-valor');
+        let valor = parseFloat(inputValor.getAttribute('data-valor')) || 0;
+        saldoAtual += valor;
+    }
+    
+    //inputSaldoAtual.value = `R$ ${formatarResultado(saldoAtual.toFixed(2), 2)}`;
+    criarCronogramaCaixas();
+}
+
+function CriarDicionarioCaixas (){
+    let dicionarioCaixas = {};
+    const caixas = document.getElementsByClassName("caixa-item");
+
+    if (!caixas) return
+
+    for (let i = 0; i < caixas.length; i++){
+        let caixa = caixas[i];
+        let idCaixa = caixa.getAttribute('data-caixa-id');
+        let nomeCaixa = caixa.querySelector('.caixa-nome-input').value;
+        let saldoInicial = parseFloat(caixa.querySelector('.caixa-saldo-input').getAttribute('data-valor')) || 0;
+
+        let movimentacoesLivres = {}
+        let movimentacoesFixas = {}
+        let contador = 0
+
+        const tabelaMovimentacaoLivre = caixa.querySelector('.tabela-caixa-movimentacao-livre');
+        const linhasMovimentacaoLivre = tabelaMovimentacaoLivre.getElementsByTagName('tr');
+
+        for (l = 0; l < linhasMovimentacaoLivre.length; l++){
+            let celulas = linhasMovimentacaoLivre[l].getElementsByTagName('td');
+            movimentacoesLivres[contador] = {
+                tipo: celulas[0].querySelector('.caixa-movimentacao-livre-tipo').value,
+                descricao: celulas[1].querySelector('.caixa-movimentacao-livre-descricao').value,
+                valor: parseFloat(celulas[2].querySelector('.caixa-movimentacao-livre-valor').getAttribute('data-valor')) || 0,
+                data: new Date(celulas[3].querySelector('.caixa-movimentacao-livre-data').value) || new Date()
+            }
+            contador++;
+        }
+
+        contador = 0;
+        const tabelamovimentacaoFixas = caixa.querySelector('.tabela-caixa-movimentacao-fixa');
+        const linhasMovimentacaoFixas = tabelamovimentacaoFixas.getElementsByTagName('tr');
+
+        for (l = 0; l < linhasMovimentacaoFixas.length; l++){
+            let celulas = linhasMovimentacaoFixas[l].getElementsByTagName('td');
+            var select = celulas[1].querySelector('.caixa-movimentacao-fixa-tipo');
+            movimentacoesFixas[contador] = {
+                fonte: celulas[0].querySelector('.caixa-movimentacao-fixa-fonte').value,
+                tipo: select.options[select.selectedIndex].text,
+                valor: parseFloat(select.value) || 0
+            }
+            contador++;
+        }
+
+        dicionarioCaixas[idCaixa] = {
+            nome: nomeCaixa,
+            saldoInicial: saldoInicial,
+            movimentacaoLivre: movimentacoesLivres,
+            movimentacaoFixa: movimentacoesFixas
+        }
+    }
+    return dicionarioCaixas;
+}
+
+var dicionarioCronogramaCaixas = {};
+
+function criarBaseBoletimCaixa(dicionario = {}) {
+    var baseDescricao = {
+        'Total provento': 'provento',
+        'Total venda':'entrada',
+        'Total compra':'saida',
+        'Total entrada':'entrada',
+        'Total saida':'saida',
+    }
+
+    dicionarioCronogramaCaixas = {};
+
+    var dicionarioCaixas = CriarDicionarioCaixas();
+
+    let contador = 0; let contadorCaixas = 0;
+
+    Object.values(dicionarioCaixas).forEach((dado) => {
+        var nomeCaixa = dado.nome;
+        var movimentacoesFixas = dado.movimentacaoFixa;
+        var movimentacoesLivres = dado.movimentacaoLivre;
+
+        let movimentou = false;
+        dicionarioCronogramaCaixas[contadorCaixas] = {};
+
+        Object.values(movimentacoesFixas).forEach((movimentacao) => {
+            var fonte = `boletim-mensal-${movimentacao.fonte.toLowerCase()}`;
+            var descricao = movimentacao.tipo;
+
+            if (descricao === 'Selecione') return;
+
+            Object.values(dicionario).forEach((item) => {
+                if (item.ignorar === true) return;
+                var descricaoItem = item.descricao;
+                var valor = item.valor;
+                var tipoItem = item.tipo;
+                var movimentacaoItem = item.movimentacao;
+
+                if (tipoItem != fonte){ return; }
+                let valorOriginal = valor;
+
+                var itemModificado = { ...item }; // cria cópia real
+
+                if(descricao === 'Total'){
+                    item.descricao = `Caixa ${nomeCaixa} - ${descricaoItem} - Valor: R$ ${formatarResultado(valor.toFixed(2), 2)}`;
+                    item.valor = 0;
+                    item.ignorar = true;
+                    item.tipo = `${tipoItem} - boletim-mensal-caixa`;
+                    item.movimentacao = 'caixa';
+                } else if (descricao in baseDescricao){
+                    var descrcaioBase = baseDescricao[descricao];
+                    if (descrcaioBase === 'provento'){
+                        if (descricaoItem.includes('Provento')){
+                            item.descricao = `Caixa ${nomeCaixa} - ${descricaoItem} - Valor: R$ ${formatarResultado(valor.toFixed(2), 2)}`;
+                            item.valor = 0;
+                            item.ignorar = true;
+                            item.tipo = `${tipoItem} - boletim-mensal-caixa`;
+                            item.movimentacao = 'caixa';
+                        }
+                    } else if (movimentacaoItem === descrcaioBase){
+                        if (descricaoItem.includes('Provento')){return;}
+
+                        item.descricao = `Caixa ${nomeCaixa} - ${descricaoItem} - Valor: R$ ${formatarResultado(valor.toFixed(2), 2)}`;
+                        item.valor = 0;
+                        item.ignorar = true;
+                        item.tipo = `${tipoItem} - boletim-mensal-caixa`;
+                        item.movimentacao = 'caixa';
+                    }
+                } else {
+                    if (descricaoItem === descricao){
+                        item.descricao = `Caixa ${nomeCaixa} - ${descricaoItem} - Valor: R$ ${formatarResultado(valor.toFixed(2), 2)}`;
+                        item.valor = 0;
+                        item.ignorar = true;
+                        item.tipo = `${tipoItem} - boletim-mensal-caixa`;
+                        item.movimentacao = 'caixa';
+                    }
+                }
+
+                if (item.ignorar === true) {
+                    dicionarioCronogramaCaixas[contadorCaixas][contador] = itemModificado;
+                    dicionarioCronogramaCaixas[contadorCaixas][contador].valor = valorOriginal;
+                    contador++;
+                }
+            });
+        });
+
+        Object.values(movimentacoesLivres).forEach((movimentacaoLivre) => {
+
+            var descricao = movimentacaoLivre.descricao;
+            var valor = movimentacaoLivre.valor;
+            let ultimaChave = proximaChave(dicionario);
+
+            const dataISO = new Date(movimentacaoLivre.data);
+
+            const diaOriginal = dataISO.getUTCDate();
+
+            const hoje = new Date();
+
+            const ultimoDiaMes = new Date(hoje.getFullYear(),hoje.getMonth() + 1,0).getDate();
+
+            const dia = Math.min(diaOriginal, ultimoDiaMes);
+
+            var descricao_ = ''; var valor_ = 0;
+
+            if (movimentacaoLivre.tipo === 'entrada') {
+                descricao_ = `Caixa ${nomeCaixa} - Entrada - ${descricao}`;
+                valor_ = valor*-1;
+            } else {
+                descricao_ = `Caixa ${nomeCaixa} - Saida - ${descricao}`;
+                valor_ = valor;
+            }
+
+            const dataFormatada =`${String(dia).padStart(2, '0')}/` + `${String(hoje.getMonth() + 1).padStart(2, '0')}/` +`${hoje.getFullYear()}`;
+
+            var _ = {
+                descricao: descricao_,
+                dia: dia,
+                valor: valor_,
+                tipo: `boletim-mensal-caixa`,
+                ignorar: true,
+                movimentacao: 'caixa',
+                explicacao:'',
+                data: dataFormatada,
+            };
+
+            if (movimentacaoLivre.tipo != 'saida'){
+                dicionario[ultimaChave] = _;
+            }
+            
+            var itemModificado = { ..._ }; // cria cópia real
+            dicionarioCronogramaCaixas[contadorCaixas][contador] = itemModificado;
+            dicionarioCronogramaCaixas[contadorCaixas][contador].valor = valor_*-1;
+            dicionarioCronogramaCaixas[contadorCaixas][contador].descricao = `${movimentacaoLivre.tipo} - ${descricao}`;
+            contador++;
+        });
+
+        contadorCaixas++;
+    });
+
+    return dicionario;
+}
+
+function proximaChave(dicionario) {
+    const ultima = Math.max(
+        ...Object.keys(dicionario)
+            .filter(k => !isNaN(k)) // só números
+            .map(Number)
+    );
+
+    return String(ultima + 1);
+}
+
+let lsitaItensFixos = [];
+
+function atualizarCaixaValoresFixos () {
+    lsitaItensFixos = lsitaItensFixos.filter(item => item.isConnected);
+    let listaItens = lsitaItensFixos;
+
+    if (listaItens.length === 0) return;
+
+    listaItens.forEach((item) => {
+        const colunas = item.getElementsByTagName('td');
+
+        const selectFonte = colunas[0].querySelector('select');
+        const selectTipo  = colunas[1].querySelector('select');
+        const inputValorFixa = colunas[2].querySelector('input');
+
+        // guarda o texto atualmente selecionado
+        const textoSelecionado =
+            selectTipo.options[selectTipo.selectedIndex]?.textContent;
+
+        // força atualizar tipos conforme a fonte atual
+        atualizarSelectTipo(selectFonte, selectTipo, inputValorFixa);
+
+        // reaplica o tipo se ainda existir
+        if (textoSelecionado) {
+            const opcao = [...selectTipo.options].find(opt =>
+                opt.textContent.trim() === textoSelecionado
+            );
+
+            if (opcao) {
+                selectTipo.selectedIndex = opcao.index;
+                selectTipo.dispatchEvent(new Event('change'));
+            }
+        }
+
+        let id = item.classList[0].replace('movimentacao-caixa-fixa-linha-', '');
+        ataulizarSaldoCaixas(id);
+    });
+}
+
+
+
+function chamarCaixas(){
+    atualizarCaixaValoresFixos();
+    criarCronogramaCaixas();
+    mostrarIconer('Icone12');
+}
+
+
+
+
+
+
+
+
+
 async function baixarModelo() {
     function formatarData(data) {
         let _ = new Date(data);
@@ -389,6 +1159,7 @@ function criarBarraDeFiltros(containerId, callbackQuandoAtualizar, tipo = false)
       { value: 'investimento', label: 'Investimento' },
       { value: 'cambio', label: 'Câmbio' },
       { value: 'cofrinho', label: 'Cofrinho' },
+      { value: 'caixa', label: 'Caixa' },
       { value: 'movimentacao-entrada', label: 'Movimentação de Entrada' },
       { value: 'movimentacao-saida', label: 'Movimentação de Saída' }
     ];
@@ -731,11 +1502,21 @@ function removerLinhaTotalBoletimFiltro() {
 
 
 function cronogramaCheckListFuncao(filtro=[], conjunto=false){
-  let _ = new Date();
-  let data = new Date(_.getFullYear(), _.getMonth() - 1, 1);
-  let dataAtual = new Date(_.getFullYear(), _.getMonth(), 1);
-  dicionarios = calcularValoresMensais(atualizarDadosReceitas(), atualizarDadosCartoes(), atualizarDadosDiversos(), criarDicionarioCofrinho(), criarDicionarioAcao(), criarDicionarioProventosAcoes(), criarDicionarioMoedas(), data);
-  calcularSemanasCronograma(dicionarios, dataAtual, filtro, conjunto, identificador = 'Cronograma-tabela-corpo-1');
+    let _ = new Date();
+    let data = new Date(_.getFullYear(), _.getMonth() - 1, 1);
+    let dataAtual = new Date(_.getFullYear(), _.getMonth(), 1);
+    dicionarioReceitas = atualizarDadosReceitas();
+    dicionarioCartoes = atualizarDadosCartoes();
+    dicionarioDiversos = atualizarDadosDiversos();
+    dicionarioCofrinho = criarDicionarioCofrinho();
+    dicionarioAcoes = criarDicionarioAcao();
+    dicionarioProventosAcoes = criarDicionarioProventosAcoes();
+    dicionarioMoedas = criarDicionarioMoedas();
+    let dataHoje = new Date();
+
+    dicionarioValoresMensaisCartoes = calcularValoresMensais(dicionarioReceitas, dicionarioCartoes, dicionarioDiversos, dicionarioCofrinho, dicionarioAcoes, dicionarioProventosAcoes, dicionarioMoedas, dataHoje);
+    dicionarioValoresMensaisCartoes["1"] = criarBaseBoletimCaixa(dicionarioValoresMensaisCartoes["1"]);
+    calcularSemanasCronograma(dicionarioValoresMensaisCartoes, dataAtual, filtro, conjunto, identificador = 'Cronograma-tabela-corpo-1');
 }
 
 function calcularSemanasCronograma(dadosCompostos, data, filtro, conjunto, identificador, semanas = 6) {
@@ -821,7 +1602,15 @@ function calcularSemanasCronograma(dadosCompostos, data, filtro, conjunto, ident
                         cell.setAttribute('descricao', item.descricao);
                         cell.setAttribute('tipo', item.tipo);
                         cell.setAttribute('movimentacao', `movimentacao-${item.movimentacao}`);
-                        cell.style.backgroundColor = item.movimentacao === 'entrada' ? 'rgba(211, 249, 216, 0.5)' : 'rgba(249, 211, 211, 0.5)';
+
+                        if (item.movimentacao === 'entrada') {
+                            cell.style.backgroundColor = 'rgba(211, 249, 216, 0.5)';
+                        } else if (item.movimentacao === 'saida') {
+                            cell.style.backgroundColor = 'rgba(249, 211, 211, 0.5)';
+                        } else {
+                            cell.style.backgroundColor = 'rgba(211, 237, 249, 0.5)';
+                        }
+
                         cell.style.color = 'black';
                     }
                 }
@@ -4350,6 +5139,7 @@ function salvarDicionario() {
   let dicionarioGruposAcoes = criarDicionarioGruposInvestimentos();
   let dicionarioMoedas = criarDicionarioMoedas(); 
   if (dicionarioCofrinhoMetas === undefined) { dicionarioCofrinhoMetas = {}; }
+  let DicionarioCaixas = CriarDicionarioCaixas();
 
   const agora = new Date();
   const dia = String(agora.getDate()).padStart(2, '0');
@@ -4381,7 +5171,8 @@ function salvarDicionario() {
       dicionarioAcoes: dicionarioAcoes,
       dicionarioProventosAcoes: dicionarioProventosAcoes,
       dicionarioGruposAcoes: dicionarioGruposAcoes,
-      dicionarioMoedas: dicionarioMoedas
+      dicionarioMoedas: dicionarioMoedas,
+      dicionarioCaixas: DicionarioCaixas
   };
 
   // ✅ NOVO FINAL: Salva como arquivo .txt
@@ -4642,6 +5433,7 @@ function parseDicionarios(data) {
         data.dicionarioMoedas || {},
         data.dicionarioProventosAcoes || {},
         data.dicionarioGruposAcoes || {},
+        data.dicionarioCaixas || {},
     ];
 }
 
@@ -4914,6 +5706,67 @@ function CarregarTudo(dicionarios) {
         id++;
     }
 
+    let dicionarioCaixas = dicionarios[12];
+    id = 0;
+    for (const [key, caixa] of Object.entries(dicionarioCaixas)) {
+        addCaixa();
+        document.getElementById(`caixa-nome-${id}`).value = caixa.nome;
+        document.getElementById(`caixa-saldo-${id}`).value = formatarMoeda_resultado(caixa.saldoInicial);
+
+        formatarValorCaixaLivre(document.getElementById(`caixa-saldo-${id}`), id);
+
+        var movimentacoesLivres = caixa.movimentacaoLivre;
+        var movimentacaoesFixas = caixa.movimentacaoFixa;
+
+        contador = 0;
+        for (const [key, movimentacao] of Object.entries(movimentacoesLivres)) {
+            adicionarItemCaixaLivre(id);
+            var linhas = document.getElementById(`tabela-caixa-${id}-movimentacao-livre`).getElementsByTagName('tr');
+            var colunas = linhas[contador].getElementsByTagName('td');
+            colunas[0].querySelector('select').value = movimentacao.tipo;
+            colunas[1].querySelector('input').value = movimentacao.descricao;
+            colunas[2].querySelector('input').value = formatarMoeda_resultado(movimentacao.valor);
+            const inputData = colunas[3].querySelector('input');
+
+            const dataISO = new Date(movimentacao.data);
+            inputData.value = dataISO.toISOString().split('T')[0];
+
+            formatarValorCaixaLivre(colunas[2].querySelector('input'), id);
+            contador++;
+        }
+
+        contador = 0;
+        for (const [key, movimentacao] of Object.entries(movimentacaoesFixas)) {
+            adicionarItemCaixaFixa(id);
+
+            const tabela = document.getElementById(`tabela-caixa-${id}-movimentacao-fixa`);
+            const linhas = tabela.getElementsByTagName('tr');
+            const colunas = linhas[contador].getElementsByTagName('td');
+
+            const selectFonte = colunas[0].querySelector('select');
+            const selectTipo = colunas[1].querySelector('select');
+            const inputValorFixa = colunas[2].querySelector('input');
+
+            atualizarSelectTipo(selectFonte, selectTipo, inputValorFixa);
+
+            selectFonte.value = movimentacao.fonte;
+            selectFonte.dispatchEvent(new Event('change'));
+
+            const opcao = [...selectTipo.options].find(opt =>
+                opt.textContent.trim() === movimentacao.tipo
+            );
+
+            if (opcao) {
+                selectTipo.selectedIndex = opcao.index;
+                selectTipo.dispatchEvent(new Event('change'));
+            }
+            contador++;
+        }
+
+        ataulizarSaldoCaixas(id);
+        id++;
+    }
+
     boletimFuncao();
     historicoInvestimentos();
 }
@@ -4935,6 +5788,7 @@ function limparConteudo() {
     var tabelaproventos = document.getElementById('proventos-tabela-corpo');
     var tabelagrupos = document.getElementById('grupos-investimento-container');
     var tabeldDistribuicaoPonderada = document.getElementById('distribuicao-ponderada-tabela-corpo');
+    var caixas = document.getElementById('caixas-container');
 
     if (tabelaReceitas) {
         tabelaReceitas.innerHTML = ''; // Remove todo o conteúdo da tabela
@@ -4971,6 +5825,10 @@ function limparConteudo() {
     if (tabeldDistribuicaoPonderada) {
         tabeldDistribuicaoPonderada.innerHTML = ''; // Remove todo o conteúdo da tabela de distribuição ponderada
     }
+
+    if (caixas) {
+        caixas.innerHTML = ''; // Remove todo o conteúdo do container de caixas
+    }
 }
 
 let listaCheckList = [];
@@ -5006,10 +5864,11 @@ function ChecklistFuncao() {
             i--;
         }
     }
+
     carregarCheckListMarcadas();
-  cronogramaCheckListFuncao();
-  barraFiltroCheckList.forcarAtualizacao();
-  atualizarSaldoCheckGeral();
+    cronogramaCheckListFuncao();
+    barraFiltroCheckList.forcarAtualizacao();
+    atualizarSaldoCheckGeral();
 }
 
 function clonarEBaixarTabelaCheckList(idDiv, data, idCheckList, idDias, idCalendario) {
@@ -5042,6 +5901,7 @@ function clonarEBaixarTabelaCheckList(idDiv, data, idCheckList, idDias, idCalend
 
             // Define o conteúdo da quarta coluna como uma caixa de marcação
             celulas[3].innerHTML = `<input type="checkbox" id="checkbox${index}" class="checkbox ${idCalendario} ${identificador}"/>`;
+            //console.log(identificador);
             
             // Adiciona um evento à caixa de marcação
             var checkbox = celulas[3].querySelector('input[type="checkbox"]');
@@ -5051,6 +5911,7 @@ function clonarEBaixarTabelaCheckList(idDiv, data, idCheckList, idDias, idCalend
                 atualizarDicionarioDia(dia, this.checked, idCalendario);
                 if (checkbox.checked) {
                     listaCheckList.push(identificador);
+                    console.log(identificador);
                 } else {
                     var index = listaCheckList.indexOf(identificador);
                     if (index > -1) {
@@ -5140,6 +6001,7 @@ function atualizarMarcacoesCheckList(){
 function carregarCheckListMarcadas(){
     var saldoLabel = document.getElementById('saldoCheckList');
     saldoLabel.innerText = formatarResultado(0.00, 2);
+    console.log(listaCheckList);
 
     for (let i = 0; i < listaCheckList.length; i++) {
         var identificador = listaCheckList[i];
@@ -5389,6 +6251,7 @@ function boletimFuncao() {
   let dataHoje = new Date();
 
   dicionarioValoresMensaisCartoes = calcularValoresMensais(dicionarioReceitas, dicionarioCartoes, dicionarioDiversos, dicionarioCofrinho, dicionarioAcoes, dicionarioProventosAcoes, dicionarioMoedas, dataHoje);
+  dicionarioValoresMensaisCartoes["1"] = criarBaseBoletimCaixa(dicionarioValoresMensaisCartoes["1"]);
   let contadorBoletim = 1;
   let mesDataAtual = dataHoje.getMonth();
   let anoDataAtual = dataHoje.getFullYear();
@@ -5906,9 +6769,13 @@ function adicionarLinhasTabelaBoletim(dados, idTbody, id, saldoStatus=true) {
               } else {
                 novaLinha.title = dados[chave].explicacao;
               }
-              novaLinha.style.backgroundColor = dados[chave].movimentacao === 'entrada' 
-                ? 'rgba(211, 249, 216, 0.5)' // verde claro, 50% transparente
-                : 'rgba(249, 211, 211, 0.5)'; // vermelho claro, 50% transparente  
+              if (dados[chave].movimentacao === 'entrada'){
+                novaLinha.style.backgroundColor = 'rgba(211, 249, 216, 0.5)' // verde claro, 50% transparente
+              } else if (dados[chave].movimentacao === 'saida'){
+                novaLinha.style.backgroundColor = 'rgba(255, 204, 204, 0.5)' // rosa claro, 50% transparente
+              } else {
+                novaLinha.style.backgroundColor = 'rgba(211, 237, 249, 0.5)' 
+              }
 
               novaLinha.style.color = 'black';  // Cor do texto 
               if (saldoStatus){
@@ -6857,13 +7724,13 @@ function formatarCalculo(texto='') {
         if (contaData == 1){ return diasParaData(resultado);}
         else {
             resultado = parseFloat(resultado).toFixed(numeroCasasDecimais);
-            return formatarResultado(resultado);
+            return formatarResultado(resultado, 2);
         }
     } else if (calculoEmHora) {
         return segundosParaTempo(resultado.toString());
     } else {
         resultado = parseFloat(resultado).toFixed(numeroCasasDecimais);
-        return formatarResultado(resultado);
+        return formatarResultado(resultado, 2);
     }
 }
 
@@ -6912,39 +7779,40 @@ function pontoParaVirgula(texto){
 }
 
 function formatarResultado(texto, numeroCasasDecimais) {
-    // Converte o n�mero em string para manipula��o
-    var base = texto.toString();
-    var resultado = '';
-    
-    // Separa a parte inteira da parte decimal
-    var partes = base.split(".");
-    var antes = partes[0].split("").reverse().join("");
+    // garante número
+    let numero = Number(texto);
 
-    // valor negativo
-    if (partes[0].includes("-")) {
-        partes[0] = partes[0].replace("-","");
-    }
-    
-    // Adiciona o ponto a cada tr�s d�gitos
-    for (var t = 0; t < antes.length; t++) {
-        if (t > 0 && t % 3 == 0) {
-            resultado += '.';
+    // fixa casas decimais
+    let base = numero.toFixed(numeroCasasDecimais);
+
+    let partes = base.split(".");
+    let resultado = "";
+
+    let antes = partes[0].replace("-", "").split("").reverse().join("");
+
+    // adiciona separador de milhar
+    for (let t = 0; t < antes.length; t++) {
+        if (t > 0 && t % 3 === 0) {
+            resultado += ".";
         }
         resultado += antes[t];
     }
+
     resultado = resultado.split("").reverse().join("");
-    
-    // Adiciona a parte decimal, se houver
-    if (partes.length > 1) {
-        resultado += ',' + partes[1];
-    } else if (numeroCasasDecimais > 0) {
-        resultado += ',' + '0'.repeat(numeroCasasDecimais);
+
+    // recoloca sinal negativo se existir
+    if (numero < 0) {
+        resultado = "-" + resultado;
     }
 
-    resultado = resultado.replace("-.", "-");
-    
-    return `${resultado}`;
+    // parte decimal sempre com tamanho correto
+    if (numeroCasasDecimais > 0) {
+        resultado += "," + partes[1];
+    }
+
+    return resultado;
 }
+
 
 function DataHoraParaSegudos (base){
     let partes = base.split("-");
@@ -7146,6 +8014,7 @@ function boletimFuncaoAltenativo(data, idBoletim, cBoletim, boletinsGeral=false,
     }
     
     dicionarioValoresMensaisCartoes_ = calcularValoresMensais(dicionarioReceitas, dicionarioCartoes, dicionarioDiversos, dicionarioCofrinho, dicionarioAcoes, dicionarioProventosAcoes, dicionarioMoedas, dataHoje, qtdeMes);
+    //dicionarioValoresMensaisCartoes_["1"] = criarBaseBoletimCaixa(dicionarioValoresMensaisCartoes_["1"]);
     let contadorBoletim = cBoletim;
     let mesDataAtual = dataHoje.getMonth();
     let anoDataAtual = dataHoje.getFullYear();
