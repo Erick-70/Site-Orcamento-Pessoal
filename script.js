@@ -605,7 +605,7 @@ function criarBaseBoletimCaixa(dicionario = {}) {
                 var itemModificado = { ...item }; // cria cópia real
 
                 if(descricao === 'Total'){
-                    item.descricao = `Caixa ${nomeCaixa} - ${descricaoItem} - Valor: R$ ${formatarResultado(valor.toFixed(2), 2)}`;
+                    item.descricao = `Caixa ${nomeCaixa} - ${descricaoItem} - Valor R$ ${formatarResultado(valor.toFixed(2), 2)}`;
                     item.valor = 0;
                     item.ignorar = true;
                     item.tipo = `${tipoItem} - boletim-mensal-caixa`;
@@ -614,7 +614,7 @@ function criarBaseBoletimCaixa(dicionario = {}) {
                     var descrcaioBase = baseDescricao[descricao];
                     if (descrcaioBase === 'provento'){
                         if (descricaoItem.includes('Provento')){
-                            item.descricao = `Caixa ${nomeCaixa} - ${descricaoItem} - Valor: R$ ${formatarResultado(valor.toFixed(2), 2)}`;
+                            item.descricao = `Caixa ${nomeCaixa} - ${descricaoItem} - Valor R$ ${formatarResultado(valor.toFixed(2), 2)}`;
                             item.valor = 0;
                             item.ignorar = true;
                             item.tipo = `${tipoItem} - boletim-mensal-caixa`;
@@ -623,7 +623,7 @@ function criarBaseBoletimCaixa(dicionario = {}) {
                     } else if (movimentacaoItem === descrcaioBase){
                         if (descricaoItem.includes('Provento')){return;}
 
-                        item.descricao = `Caixa ${nomeCaixa} - ${descricaoItem} - Valor: R$ ${formatarResultado(valor.toFixed(2), 2)}`;
+                        item.descricao = `Caixa ${nomeCaixa} - ${descricaoItem} - Valor R$ ${formatarResultado(valor.toFixed(2), 2)}`;
                         item.valor = 0;
                         item.ignorar = true;
                         item.tipo = `${tipoItem} - boletim-mensal-caixa`;
@@ -631,7 +631,7 @@ function criarBaseBoletimCaixa(dicionario = {}) {
                     }
                 } else {
                     if (descricaoItem === descricao){
-                        item.descricao = `Caixa ${nomeCaixa} - ${descricaoItem} - Valor: R$ ${formatarResultado(valor.toFixed(2), 2)}`;
+                        item.descricao = `Caixa ${nomeCaixa} - ${descricaoItem} - Valor R$ ${formatarResultado(valor.toFixed(2), 2)}`;
                         item.valor = 0;
                         item.ignorar = true;
                         item.tipo = `${tipoItem} - boletim-mensal-caixa`;
