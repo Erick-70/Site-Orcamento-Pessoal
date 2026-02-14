@@ -11,13 +11,14 @@ function criarCronogramaCaixas (){
 
     divsCronogramasCaixas.forEach(divCronogramaCaixa => {
         let saldo = 0;
+        let saldoInicial = parseFloat(saldosCaixasIniciais[contador].getAttribute('data-valor')) || 0;
+        saldo = saldoInicial;
+        
         let saldoFormatado = parseFloat(saldo).toFixed(2);
         saldoFormatado = formatarResultado(saldoFormatado, 2)
         
         let dados = dicionarioCronogramaCaixas[contador];
-        let saldoInicial = parseFloat(saldosCaixasIniciais[contador].getAttribute('data-valor')) || 0;
-        saldo = saldoInicial;
-
+        
         let _valor = parseFloat(saldo).toFixed(2);
         _valor = formatarResultado(saldo.toString(), 2);
         
