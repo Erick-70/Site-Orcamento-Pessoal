@@ -772,7 +772,7 @@ function chamarCaixas(){
 async function baixarModelo() {
     function formatarData(data) {
         let _ = new Date(data);
-        var resultado = new Date(_.getFullYear(), _.getMonth(), _.getDate() +1);
+        var resultado = new Date(_.getFullYear(), _.getMonth(), _.getDate() +2);
         return resultado;
     }
 
@@ -1020,7 +1020,11 @@ function boletimGraficoCronograma() {
         const cronogramaContainer = document.createElement('div');
         cronogramaContainer.id = `cronograma-boletim-${i}`;
         container.appendChild(cronogramaContainer);
-        criarCronogramaBoletimMensal(i, cronogramaContainer, dataAtual);
+        if (i === 1) {
+            criarCronogramaBoletimMensal(i, cronogramaContainer, dataAtual, true);
+        } else{
+            criarCronogramaBoletimMensal(i, cronogramaContainer, dataAtual);
+        }
 
         
         container.appendChild(h3);
@@ -1028,7 +1032,7 @@ function boletimGraficoCronograma() {
     }
 }
 
-function criarCronogramaBoletimMensal(numeroBoletim, container, data) {
+function criarCronogramaBoletimMensal(numeroBoletim, container, data, primeiro = false) {
     // total de dias do mês
     const diasNoMes = new Date(
         data.getFullYear(),
@@ -1057,6 +1061,10 @@ function criarCronogramaBoletimMensal(numeroBoletim, container, data) {
         criarDicionarioMoedas(),
         data
     );
+
+    if (primeiro) {
+        dicionarios["1"] = criarBaseBoletimCaixa(dicionarios["1"]);
+    }
 
     calcularSemanasCronograma(
         dicionarios,
@@ -5902,7 +5910,6 @@ function clonarEBaixarTabelaCheckList(idDiv, data, idCheckList, idDias, idCalend
 
             // Define o conteúdo da quarta coluna como uma caixa de marcação
             celulas[3].innerHTML = `<input type="checkbox" id="checkbox${index}" class="checkbox ${idCalendario} ${identificador}"/>`;
-            //console.log(identificador);
             
             // Adiciona um evento à caixa de marcação
             var checkbox = celulas[3].querySelector('input[type="checkbox"]');
@@ -5912,7 +5919,6 @@ function clonarEBaixarTabelaCheckList(idDiv, data, idCheckList, idDias, idCalend
                 atualizarDicionarioDia(dia, this.checked, idCalendario);
                 if (checkbox.checked) {
                     listaCheckList.push(identificador);
-                    console.log(identificador);
                 } else {
                     var index = listaCheckList.indexOf(identificador);
                     if (index > -1) {
@@ -6002,7 +6008,6 @@ function atualizarMarcacoesCheckList(){
 function carregarCheckListMarcadas(){
     var saldoLabel = document.getElementById('saldoCheckList');
     saldoLabel.innerText = formatarResultado(0.00, 2);
-    console.log(listaCheckList);
 
     for (let i = 0; i < listaCheckList.length; i++) {
         var identificador = listaCheckList[i];
