@@ -1,4 +1,35 @@
+.carregando {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
 
+.loader-box {
+    text-align: center;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid #ccc;
+    border-top: 5px solid #4CAF50;
+    border-radius: 50%;
+    animation: girar 1s linear infinite;
+    margin: 0 auto 15px;
+}
+
+@keyframes girar {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+
+#grupos-investimentos-colunas-selecao {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
 
 .filtro-container {
   display: flex;
@@ -147,7 +178,8 @@
     border-radius: 5px;
     box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
     display: flex;
-    align-items: center;
+    flex-direction: column;
+    align-items: flex-start;
     gap: 10px;
     animation: fadeIn 0.5s ease-in-out;
     border-radius: 10px; /* Bordas arredondadas */
@@ -401,7 +433,7 @@ textarea {
     border: 2px solid #000;
     padding: 20px;
     margin: 20px auto;
-    max-height: 400px; /* Defina uma altura máxima */
+    /*max-height: 400px; /* Defina uma altura máxima */
     overflow-y: auto; /* Permitir rolagem vertical */
 }
 
@@ -418,7 +450,7 @@ textarea {
   border-top: none; /* Remove a borda superior */
   padding: 5px;
   margin: 5px auto; /* Remove o espaço externo superior */
-  max-height: 800px; /* Defina uma altura máxima */
+  /*max-height: 800px; /* Defina uma altura máxima */
   overflow-y: auto; /* Permitir rolagem vertical */
 }
 
